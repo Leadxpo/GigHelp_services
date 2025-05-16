@@ -2,17 +2,18 @@ const jwt = require("jsonwebtoken");
 const { sequelize } = require('../db');
 const systemUserModel = require('../Models/SystemUser')(sequelize);
 const UserModel = require('../Models/Users')(sequelize);
-
 const { Op } = require("sequelize");
 
 const SystemUserAuth = async (req, res, next) => {
   try {
-    if (!req.cookies || !req.cookies.token) {
-      return res.status(401).json({ error: "Token is missing" });
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: "Authorization token missing or invalid" });
     }
 
-    const token = req.cookies.token;
-    const verifyToken = jwt.verify(token, "vamsi@1998"); 
+    const token = authHeader.split(' ')[1]; // Extract token after "Bearer"
+    const verifyToken = jwt.verify(token, "vamsi@1998");
 
     const { userId } = verifyToken;
 
@@ -34,15 +35,16 @@ const SystemUserAuth = async (req, res, next) => {
   }
 };
 
-
 const userAuth = async (req, res, next) => {
   try {
-    if (!req.cookies || !req.cookies.token) {
-      return res.status(401).json({ error: "Token is missing" });
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: "Authorization token missing or invalid" });
     }
 
-    const token = req.cookies.token;
-    const verifyToken = jwt.verify(token, "vamsi@1998"); 
+    const token = authHeader.split(' ')[1]; // Extract token after "Bearer"
+    const verifyToken = jwt.verify(token, "vamsi@1998");
 
     const { userId } = verifyToken;
 
@@ -53,10 +55,6 @@ const userAuth = async (req, res, next) => {
       return res.status(401).json({ error: "User does not exist" });
     }
 
-    // if (user.role !== "Super Admin" && user.role !== "Admin") {
-    //   return res.status(403).json({ error: "Invalid user role" });
-    // }
-
     req.user = user;
     next();
   } catch (error) {
@@ -64,6 +62,4 @@ const userAuth = async (req, res, next) => {
   }
 };
 
-
-
-module.exports = {SystemUserAuth, userAuth };
+module.exports = { SystemUserAuth, userAuth };

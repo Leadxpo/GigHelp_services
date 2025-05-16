@@ -1,6 +1,6 @@
 const { sequelize } = require('../db');
 const bidModel = require('../Models/Bids')(sequelize);
-const userModel = require('../Models/Users')(sequelize);
+const userModel = require('../Models/SystemUser')(sequelize);
 const { Op } = require("sequelize");
 const express = require('express');
 const multer = require('multer'); 
@@ -28,7 +28,7 @@ const upload = multer({
 });
 
 
-router.post("/create", upload.array('biderDocument' ,10), async (req, res) => {
+router.post("/create", upload.single('file'), async (req, res) => {
   try {
     const {
       amount,
@@ -38,10 +38,7 @@ router.post("/create", upload.array('biderDocument' ,10), async (req, res) => {
       targetedPostIn,
       daysLeft,
       userId,
-      bidUserId,
-      taskUserId,
       taskId,
-      taskDocument,
       taskDescription,
       bidOfAmount,
     } = req.body;
@@ -50,6 +47,7 @@ router.post("/create", upload.array('biderDocument' ,10), async (req, res) => {
       return errorResponse(res, "Categories is required");
     }
 
+    // Extract number of days from "3 Days Left"
     let dateOfBids = null;
     if (typeof daysLeft === 'string') {
       const match = daysLeft.match(/(\d+)\s*Days\s*Left/i);
@@ -59,6 +57,7 @@ router.post("/create", upload.array('biderDocument' ,10), async (req, res) => {
       }
     }
 
+    // Create a new bid
     const bid = await bidModel.create({
       amount,
       description,
@@ -66,16 +65,11 @@ router.post("/create", upload.array('biderDocument' ,10), async (req, res) => {
       SubCategory,
       targetedPostIn,
       userId,
-      bidUserId,
-      taskUserId,
       taskId,
       taskDescription,
       bidOfAmount,
       dateOfBids,
-      taskDocument,
       status: 'pending',
-     biderDocument: req.files ? req.files.map(file => file.filename) : [],
-
     });
 
     return successResponse(res, "Bid created successfully", bid);
@@ -87,9 +81,9 @@ router.post("/create", upload.array('biderDocument' ,10), async (req, res) => {
 
 
 // Update Bid
-router.put("/update/:BidId", async (req, res) => {
+router.patch("/update/:id", async (req, res) => {
   try {
-    const bid = await bidModel.update(req.body, { where: { BidId: req.params.BidId } });
+    const bid = await bidModel.update(req.body, { where: { id: req.params.id } });
     return successResponse(res, "Bid updated successfully", bid);
   } catch (error) {
     return errorResponse(res, "Error updating bid", error);
@@ -97,9 +91,9 @@ router.put("/update/:BidId", async (req, res) => {
 });
 
 // Delete Bid
-router.delete("/delete/:BidId", async (req, res) => {
+router.delete("/delete/:id", async (req, res) => {
   try {
-    await bidModel.destroy({ where: { BidId: req.params.BidId } });
+    await bidModel.destroy({ where: { id: req.params.id } });
     return successResponse(res, "Bid deleted successfully");
   } catch (error) {
     return errorResponse(res, "Error deleting bid", error);
@@ -173,70 +167,5 @@ router.get("/count", async (req, res) => {
     return errorResponse(res, "Error fetching bid count", error);
   }
 });
-
-router.get("/count/:userId", async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    // Count total bids by userId
-    const totalBids = await bidModel.count({
-      where: { userId: userId },
-    });
-
-    // Count completed bids by userId (assuming status: 'completed')
-    const completedBids = await bidModel.count({
-      where: { userId: userId, status: 'completed' },
-    });
-
-    const result = {
-      totalBids,
-      completedBids,
-    };
-
-    return successResponse(res, "Bid counts fetched successfully", result);
-  } catch (error) {
-    return errorResponse(res, "Error fetching bid counts", error);
-  }
-});
-
-
-
-// Get all user details based on taskId
-router.get("/users-by-task/:taskId", async (req, res) => {
-  try {
-    const { taskId } = req.params;
-
-    // Step 1: Find all bids with the given taskId
-    const bids = await bidModel.findAll({
-      where: { taskId },
-      attributes: ['userId']
-    });
-
-    // Step 2: Extract unique userIds from bids
-    const userIds = [...new Set(bids.map(bid => bid.userId))];
-
-    if (userIds.length === 0) {
-      return successResponse(res, "No users found for the given taskId", []);
-    }
-
-    // ✅ Step 3: Find user details using correct primary key field `userId`
-    const users = await userModel.findAll({
-      where: {
-        userId: {
-          [Op.in]: userIds
-        }
-      }
-    });
-
-    return successResponse(res, "Users fetched successfully based on taskId", users);
-  } catch (error) {
-    console.error("Error fetching users by taskId:", error);
-    return errorResponse(res, "Error fetching users by taskId", error);
-  }
-});
-
-
-
-
 
 module.exports = router;

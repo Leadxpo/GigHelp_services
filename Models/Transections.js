@@ -12,11 +12,21 @@ module.exports = (sequelize) => {
         },
 
         dateOfPayment: { type: DataTypes.STRING },
+        name: { type: DataTypes.STRING },
         taskOwner: { type: DataTypes.STRING },
         taskUser: { type: DataTypes.STRING },
+        userId: { type: DataTypes.STRING },
         typeOfPayment: { type: DataTypes.STRING },
-        payment: { type: DataTypes.STRING },
-        status: { type: DataTypes.STRING },
+        amount: { type: DataTypes.STRING },
+        categoryName:{ type: DataTypes.STRING },
+        status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "pending",
+        validate: {
+          isIn: [["pending", "approval", "completed", "rejected",]],
+        },
+      },
         
         createdAt: {
             type: DataTypes.DATE,

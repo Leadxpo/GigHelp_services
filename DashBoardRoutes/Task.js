@@ -36,13 +36,15 @@ router.post("/create", userAuth, upload.array("document"), async (req, res) => {
     console.log("Received Body:", req.body);
     console.log("Received Files:", req.files);
 
-    // Get just the file names instead of full paths
-    const fileNames = req.files.map((file) => file.filename);
+    // build full file URLs
+    const filePaths = req.files.map(
+      (file) => `http://localhost:3001/storege/userdp/${file.filename}`
+    );
 
-    // Create task with filenames in 'document'
+    // create task with full URLs in 'document'
     const taskData = await TaskModel.create({
       ...req.body,
-      document: fileNames, // Store only the file names here
+      document: filePaths, // store full paths here
     });
 
     return res.status(201).json({
@@ -62,9 +64,10 @@ router.post("/create", userAuth, upload.array("document"), async (req, res) => {
 
 
 
-router.put("/update/:taskId", userAuth, async (req, res) => {
+// Update Task
+router.patch("/update-task", userAuth, async (req, res) => {
   try {
-    const { taskId } = req.params; // ← Get from params, not body
+    const { taskId } = req.body;
     const updatedTask = await TaskModel.update(req.body, { where: { taskId } });
     return successResponse(res, "Task updated successfully", updatedTask);
   } catch (error) {
@@ -72,11 +75,10 @@ router.put("/update/:taskId", userAuth, async (req, res) => {
   }
 });
 
-
 // Delete Task
-router.delete("/delete/:taskId", userAuth, async (req, res) => {
+router.delete("/delete-task", userAuth, async (req, res) => {
   try {
-    const { taskId } = req.params;
+    const { taskId } = req.body;
     await TaskModel.destroy({ where: { taskId } });
     return successResponse(res, "Task deleted successfully");
   } catch (error) {
@@ -84,7 +86,7 @@ router.delete("/delete/:taskId", userAuth, async (req, res) => {
   }
 });
 
-router.get("/get-task/:taskId", userAuth, async (req, res) => {
+router.get("/get-task", userAuth, async (req, res) => {
   try {
     const { taskId } = req.params;
 

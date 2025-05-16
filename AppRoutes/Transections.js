@@ -6,13 +6,12 @@ const express = require('express');
 const router = express.Router();
 const { successResponse, errorResponse } = require("../Midileware/response");
 
+// Create Transaction
 router.post("/create", async (req, res) => {
   try {
-    console.log("Incoming transaction:", req.body);
     const transaction = await transactionModel.create(req.body);
     return successResponse(res, "Transaction created successfully", transaction);
   } catch (error) {
-    console.error("Transaction creation error:", error);
     return errorResponse(res, "Error creating transaction", error);
   }
 });
@@ -50,23 +49,8 @@ router.get("/getbyId/:id", async (req, res) => {
   }
 });
 
-// Get Transactions by User ID
-router.get("/get-by-user/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const transactions = await transactionModel.findAll({
-      where: { userId },
-      // include: userModel
-    });
-    return successResponse(res, "Transactions fetched successfully", transactions);
-  } catch (error) {
-    return errorResponse(res, "Error fetching transactions", error);
-  }
-});
-
-
 // Get All Transactions
-router.get("/get-all", async (req, res) => {
+router.get("/getall", async (req, res) => {
   try {
     const transactions = await transactionModel.findAll({ include: userModel });
     return successResponse(res, "All transactions fetched successfully", transactions);

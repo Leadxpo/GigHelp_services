@@ -11,6 +11,10 @@ const PromotionsModel = require('./Models/Promotions')
 const BidsModel = require('./Models/Bids')
 const CategoriesModel = require('./Models/Categories')
 const SubCategoriesModel = require('./Models/SubCategories')
+const ChatBoxModel = require('./Models/ChatBox')
+const NotificationModel = require('./Models/Notifications')
+
+
 
 
 
@@ -46,6 +50,10 @@ const Promotions = PromotionsModel(sequelize)
 const Bids = BidsModel(sequelize)
 const Categories = CategoriesModel(sequelize)
 const SubCategories = SubCategoriesModel(sequelize)
+const ChatBox = ChatBoxModel(sequelize)
+const Notification = NotificationModel(sequelize)
+
+
 
 
 
@@ -59,17 +67,21 @@ const createtable = () => {
     try {
         sequelize.authenticate();
 
-        systemUser.sync({ alter: true })
+        systemUser.sync({ alter: false })
         User.sync({ alter: false })
         Otp.sync({ alter: false })
-        Task.sync({ alter: true })
+        Task.sync({ alter: false })
         Tc.sync({ alter: false })
         Request.sync({ alter: false })
         Transaction.sync({ alter: false })
         Promotions.sync({ alter: false })
-        Bids.sync({ alter: false })
+        Bids.sync({ alter: true })
         Categories.sync({ alter: false })
         SubCategories.sync({ alter: false })
+        ChatBox.sync({ alter: true })
+        Notification.sync({ alter: false })
+
+
 
 
 

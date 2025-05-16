@@ -6,15 +6,22 @@ const router = express.Router();
 const { successResponse, errorResponse } = require("../Midileware/response");
 const { userAuth } = require("../Midileware/Auth");
 
-// Create Category
+
+
 router.post("/create", userAuth, async (req, res) => {
   try {
-    const category = await categoryModel.create(req.body);
+    console.log("Request body:", req.body); // ✅ confirm structure
+    const category = await categoryModel.create({
+      categoryName: req.body.categoryName,
+      categoryImage: req.body.categoryImage,
+      description: req.body.description
+    });
     return successResponse(res, "Category created successfully", category);
   } catch (error) {
     return errorResponse(res, "Error creating category", error);
   }
 });
+
 
 // Update Category
 router.patch("/update/:id", userAuth, async (req, res) => {
@@ -47,7 +54,7 @@ router.get("/get/:id", userAuth, async (req, res) => {
 });
 
 // Get All Categories
-router.get("/all", userAuth, async (req, res) => {
+router.get("/get-all", userAuth, async (req, res) => {
   try {
     const categories = await categoryModel.findAll();
     return successResponse(res, "All categories fetched successfully", categories);
