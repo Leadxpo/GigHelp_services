@@ -28,9 +28,9 @@ router.patch("/update/:id", userAuth, async (req, res) => {
 });
 
 // Delete Request
-router.delete("/delete/:id", userAuth, async (req, res) => {
+router.delete("/delete/:requestId", userAuth, async (req, res) => {
   try {
-    await requestModel.destroy({ where: { id: req.params.id } });
+    await requestModel.destroy({ where: { requestId: req.params.requestId } });
     return successResponse(res, "Request deleted successfully");
   } catch (error) {
     return errorResponse(res, "Error deleting request", error);
@@ -50,7 +50,7 @@ router.get("/get/:id", userAuth, async (req, res) => {
 // Get All Requests
 router.get("/all", userAuth, async (req, res) => {
   try {
-    const requests = await requestModel.findAll({ include: userModel });
+    const requests = await requestModel.findAll();
     return successResponse(res, "All requests fetched successfully", requests);
   } catch (error) {
     return errorResponse(res, "Error fetching requests", error);

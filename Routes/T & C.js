@@ -1,6 +1,6 @@
 const express = require('express');
 const { sequelize } = require('../db');
-const userModel = require('../Models/t & c ')(sequelize);
+const TermsModel = require('../Models/t & c ')(sequelize);
 const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../Midileware/response");
 const { userAuth } = require("../Midileware/Auth");
@@ -60,14 +60,34 @@ router.get("/get/:id", userAuth, async (req, res) => {
   }
 });
 
-// Get All Terms and Conditions
-router.get("/all", userAuth, async (req, res) => {
+// routes/terms.js or wherever your routes are defined
+router.get('/get-latest', async (req, res) => {
   try {
-    const terms = await TermsModel.findAll();
-    return successResponse(res, "All Terms and Conditions fetched successfully", terms);
+    const latestTerm = await TermsModel.findOne({
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!latestTerm) {
+      return res.status(404).json({
+        success: false,
+        message: "No terms found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Latest terms fetched successfully",
+      data: latestTerm,
+    });
   } catch (error) {
-    return errorResponse(res, "Error fetching Terms", error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch latest terms',
+      error: error.message || error,
+    });
   }
 });
+
+
 
 module.exports = router;

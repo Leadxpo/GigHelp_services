@@ -4,14 +4,15 @@ module.exports = (sequelize) => {
     'systemUser',
     {
       userId: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
+        type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
       },
       userName: { type: DataTypes.STRING, allowNull: false },
       phoneNumber: { type: DataTypes.STRING },
       email: { type: DataTypes.STRING,  allowNull: false },
       password: { type: DataTypes.STRING, allowNull: false },
+      address: { type: DataTypes.STRING, allowNull: false },
       role: { type: DataTypes.STRING, allowNull: false },
       profilePic: { type: DataTypes.STRING },
       emergencyContact: { type: DataTypes.STRING, allowNull: true },

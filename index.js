@@ -23,7 +23,8 @@ const Notifications = require('./Routes/Notifications')
 
 // FOR DASHBOARD
 
-const DashboardsystemUser = require('./DashBoardRoutes/User')
+const DashboardsystemUser = require('./DashBoardRoutes/SystemUser')
+const DashboardUser = require('./DashBoardRoutes/Users')
 const DashboardBids = require('./DashBoardRoutes/Bids')
 const DashboardTask = require('./DashBoardRoutes/Task')
 const DashboardTc = require('./DashBoardRoutes/t & c')
@@ -80,7 +81,7 @@ app.use('/systemuser', systemUser)
 app.use('/user', User)
 app.use('/otp', Otp)
 app.use('/task', Task)
-app.use('/t&C', Tc)
+app.use('/tc', Tc)
 app.use('/request', Request)
 app.use('/transections', Transaction)
 app.use('/Bids', Bids)
@@ -94,6 +95,7 @@ app.use('/notification', Notifications)
 // FOR DASHBOARD
 
 app.use('/dashboard/systemuser', DashboardsystemUser)
+app.use('/dashboard/users', DashboardUser)
 app.use('/dashboard/task', DashboardTask)
 app.use('/dashboard/t&C', DashboardTc)
 app.use('/dashboard/request', DashboardRequest)
@@ -109,15 +111,15 @@ app.use('/dashboard/notification', DashboardNotification)
 
 // FOR APP
 
-app.use('/App/systemuser', AppUser)
-app.use('/App/task', AppTask)
-app.use('/App/t&C', AppTc)
-app.use('/App/request', AppRequest)
-app.use('/App/transections', AppTransaction)
-app.use('/App/Bids', AppBids)
-app.use('/App/categories', AppCategories)
-app.use('/App/subcategories', AppSubCategories)
-app.use('/App/notification', AppNotification)
+app.use('/1991/app/systemuser', AppUser)
+app.use('/1991/app/task', AppTask)
+app.use('/1991/app/t&C', AppTc)
+app.use('/1991/app/request', AppRequest)
+app.use('/1991/app/transections', AppTransaction)
+app.use('/1991/app/Bids', AppBids)
+app.use('/1991/app/categories', AppCategories)
+app.use('/1991/app/subcategories', AppSubCategories)
+app.use('/1991/app/notification', AppNotification)
 
 
 

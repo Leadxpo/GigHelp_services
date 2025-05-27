@@ -1,73 +1,89 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { sequelize } = require('../db');
-const userModel = require('../Models/t & c ')(sequelize);
-const { Op } = require("sequelize");
+const TermsModel = require('../Models/t & c ')(sequelize); // rename properly
 const { successResponse, errorResponse } = require("../Midileware/response");
-const { userAuth } = require("../Midileware/Auth");
+const { SystemUserAuth } = require("../Midileware/Auth");
+const pdfParse = require('pdf-parse'); 
 
 const router = express.Router();
 
+// Storage config
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = './uploads/terms';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = `terms-${Date.now()}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
 
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    if (ext !== '.pdf') return cb(new Error('Only PDFs are allowed'));
+    cb(null, true);
+  }
+});
 
-// Create Terms and Conditions
-router.post("/create", userAuth, async (req, res) => {
+// Upload and extract PDF content
+router.post('/upload', SystemUserAuth, upload.single('termsFile'), async (req, res) => {
   try {
-    const terms = await TermsModel.create({
+    const pdfBuffer = fs.readFileSync(req.file.path);
+    const pdfData = await pdfParse(pdfBuffer); // ✅ Extract text
+
+    const newTerms = await TermsModel.create({
       userId: req.user.id,
-      content: req.body.content
+      filePath: req.file.path,
+      fileName: req.file.filename,
+      description: pdfData.text, // ✅ Store extracted text as description
     });
-    return successResponse(res, "Terms and Conditions created successfully", terms);
+
+    return successResponse(res, 'PDF uploaded and parsed successfully', newTerms);
   } catch (error) {
-    return errorResponse(res, "Error creating Terms and Conditions", error);
+    console.error('Error parsing or saving PDF:', error);
+    return errorResponse(res, 'Failed to upload or parse PDF', error);
   }
 });
 
-// Update Terms and Conditions
-router.put("/update/:id", userAuth, async (req, res) => {
+// Get all uploaded terms (with description, if any)
+router.get('/get-all', SystemUserAuth, async (req, res) => {
   try {
-    const terms = await TermsModel.findByPk(req.params.id);
-    if (!terms) return errorResponse(res, "Terms not found");
-
-    await terms.update({ content: req.body.content });
-    return successResponse(res, "Terms updated successfully", terms);
+    const allTerms = await TermsModel.findAll({
+      order: [['createdAt', 'ASC']],
+    });
+    return successResponse(res, 'Fetched all terms', allTerms);
   } catch (error) {
-    return errorResponse(res, "Error updating Terms", error);
+    return errorResponse(res, 'Failed to fetch terms', error);
   }
 });
 
-// Delete Terms and Conditions
-router.delete("/delete/:id", userAuth, async (req, res) => {
+
+// Delete uploaded terms by ID
+router.delete('/delete', SystemUserAuth, async (req, res) => {
   try {
-    const terms = await TermsModel.findByPk(req.params.id);
-    if (!terms) return errorResponse(res, "Terms not found");
+    const { id } = req.params;
 
-    await terms.destroy();
-    return successResponse(res, "Terms deleted successfully");
+    const term = await TermsModel.findByPk(id);
+
+    if (!term) {
+      return errorResponse(res, 'Term not found', null);
+    }
+
+    await term.destroy(); // Delete the term
+
+    return successResponse(res, 'Term deleted successfully', null);
   } catch (error) {
-    return errorResponse(res, "Error deleting Terms", error);
+    return errorResponse(res, 'Failed to delete term', error);
   }
 });
 
-// Get Terms and Conditions by ID
-router.get("/get/:id", userAuth, async (req, res) => {
-  try {
-    const terms = await TermsModel.findByPk(req.params.id);
-    if (!terms) return errorResponse(res, "Terms not found");
 
-    return successResponse(res, "Terms fetched successfully", terms);
-  } catch (error) {
-    return errorResponse(res, "Error fetching Terms", error);
-  }
-});
-
-// Get All Terms and Conditions
-router.get("/all", userAuth, async (req, res) => {
-  try {
-    const terms = await TermsModel.findAll();
-    return successResponse(res, "All Terms and Conditions fetched successfully", terms);
-  } catch (error) {
-    return errorResponse(res, "Error fetching Terms", error);
-  }
-});
 
 module.exports = router;

@@ -26,47 +26,39 @@ const upload = multer({
   limits: { fileSize: 1000000000 }
 });
 
+// Register
 router.post("/register", upload.single("profilePic"), async (req, res) => {
   try {
-    console.log("Received Data:", req.body);
-
-    // Hash password
     if (req.body.password) {
       req.body.password = await bcrypt.hash(req.body.password, 10);
     }
 
-    // Handle file upload
     if (req.file) {
       req.body.profilePic = req.file.filename;
-      console.log("Uploaded File:", req.file.filename);
     }
 
-    // Generate UUID if `userId` is not provided
-    if (!req.body.userId) {
-      req.body.userId = require("uuid").v4();
-    }
 
-    // Create User
-    const user = systemUserModel.create(req.body);
+    const user = await systemUserModel.create(req.body); // ✅ FIXED
+
     return successResponse(res, "User added successfully", user);
   } catch (error) {
-    console.error("Error Saving User:", error);
     return errorResponse(res, "Error saving user", error);
   }
 });
 
 
-// Login Route
+// Login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await systemUserModel.findOne({ where: { email } }); // Await this call!
+
+    const user = await systemUserModel.findOne({ where: { email } }); // ✅ FIXED
 
     if (!user) {
       return errorResponse(res, "User not found");
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password); // ✅ This works now
 
     if (!isPasswordValid) {
       return errorResponse(res, "Invalid password");
@@ -74,11 +66,9 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign(
       { userId: user.userId, email: user.email, userName: user.userName },
-      "vamsi@1998",
-      { expiresIn: "2h" } // Optional: token expiration
+      "vamsi@1998", // Replace with env var
+      { expiresIn: "2h" }
     );
-
-    // Removed res.cookie(...) — we're not setting any cookies
 
     return successResponse(res, "Login successful", {
       token,
@@ -89,7 +79,6 @@ router.post("/login", async (req, res) => {
         role: user.role,
       },
     });
-
   } catch (error) {
     return errorResponse(res, "Login failed", error);
   }
@@ -115,20 +104,19 @@ router.get("/get-user", SystemUserAuth, async (req, res) => {
 
 
 // Get All Profiles
-router.get("/all-user", SystemUserAuth, async (req, res) => {
+router.get("/get-all", SystemUserAuth, async (req, res) => {
   try {
-    const users = systemUserModel.findAll();
+    const users =  await systemUserModel.findAll();
     return successResponse(res, "All users fetched successfully", users);
   } catch (error) {
     return errorResponse(res, "Failed to fetch users", error);
   }
 });
 
-// Update User
-router.patch("/user-update", SystemUserAuth, upload.single("profilePic"), async (req, res) => {
+router.put("/user-update/:userId", SystemUserAuth, upload.single("profilePic"), async (req, res) => {
   try {
-    const { userId } = req.user; // Extract userId from authenticated user
-    const user = systemUserModel.findOne({ where: { userId } });
+    const { userId } = req.params;
+    const user = await systemUserModel.findOne({ where: { userId } });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -137,12 +125,11 @@ router.patch("/user-update", SystemUserAuth, upload.single("profilePic"), async 
     // Handle Profile Picture Update
     if (req.file) {
       if (user.profilePic) {
-        await deleteImage(user.profilePic); // Delete old image if exists
+        await deleteImage(user.profilePic);
       }
-      req.body.profilePic = req.file.filename; // Set new profile picture filename
+      req.body.profilePic = req.file.filename;
     }
 
-    // Update User Data
     await user.update(req.body);
 
     return successResponse(res, "Profile updated successfully", user);
@@ -151,25 +138,23 @@ router.patch("/user-update", SystemUserAuth, upload.single("profilePic"), async 
   }
 });
 
+
 // Logout
 router.post("/logout", (req, res) => {
   res.cookie("token", null, { expires: new Date(Date.now()) });
   return successResponse(res, "Logged out successfully");
 });
 
-// Delete User by userId
-router.delete("/delete-user", SystemUserAuth, async (req, res) => {
+router.delete("/delete/:userId", SystemUserAuth, async (req, res) => {
   try {
-    const { userId } = req.user;
+    const { userId } = req.params;
 
-    // Find user by userId
-    const user = systemUserModel.findOne({ where: { userId } });
+    const user = await systemUserModel.findOne({ where: { userId } });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Delete the user
     await user.destroy();
 
     return successResponse(res, "User deleted successfully");

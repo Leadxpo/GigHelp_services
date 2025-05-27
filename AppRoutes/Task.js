@@ -4,7 +4,6 @@ const TaskModel = require('../Models/Task')(sequelize);
 const UserModel = require('../Models/SystemUser')(sequelize);
 const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../Midileware/response");
-const { userAuth } = require("../Midileware/Auth");
 const { deleteImage } = require("../Midileware/deleteimages");
 const multer = require('multer');
 const path = require('path');
@@ -31,7 +30,7 @@ const upload = multer({
 
 // Set up multer for handling form data
 
-router.post("/create", userAuth, upload.array("document"), async (req, res) => {
+router.post("/create", upload.array("document"), async (req, res) => {
   try {
     console.log("Received Body:", req.body);
     console.log("Received Files:", req.files);
@@ -65,7 +64,7 @@ router.post("/create", userAuth, upload.array("document"), async (req, res) => {
 
 
 // Update Task
-router.patch("/update-task", userAuth, async (req, res) => {
+router.patch("/update-task", async (req, res) => {
   try {
     const { taskId } = req.body;
     const updatedTask = await TaskModel.update(req.body, { where: { taskId } });
@@ -76,7 +75,7 @@ router.patch("/update-task", userAuth, async (req, res) => {
 });
 
 // Delete Task
-router.delete("/delete-task", userAuth, async (req, res) => {
+router.delete("/delete-task", async (req, res) => {
   try {
     const { taskId } = req.body;
     await TaskModel.destroy({ where: { taskId } });
@@ -86,7 +85,7 @@ router.delete("/delete-task", userAuth, async (req, res) => {
   }
 });
 
-router.get("/get-task", userAuth, async (req, res) => {
+router.get("/get-task", async (req, res) => {
   try {
     const { taskId } = req.params;
 
@@ -114,7 +113,7 @@ router.get("/get-task", userAuth, async (req, res) => {
 });
 
 
-router.post("/get-task-by-user", userAuth, async (req, res) => {
+router.post("/get-task-by-user", async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -143,7 +142,7 @@ router.post("/get-task-by-user", userAuth, async (req, res) => {
 
 
 // Get All Tasks
-router.get("/get-all", userAuth, async (req, res) => {
+router.get("/get-all", async (req, res) => {
   try {
     const tasks = await TaskModel.findAll();
     return successResponse(res, "All tasks fetched successfully", tasks);
@@ -153,7 +152,7 @@ router.get("/get-all", userAuth, async (req, res) => {
 });
 
 // Search Task by Name
-router.get("/search", userAuth, async (req, res) => {
+router.get("/search", async (req, res) => {
   try {
     const { name } = req.query;
     const tasks = await TaskModel.findAll({ where: { name: { [Op.like]: `%${name}%` } } });
@@ -164,7 +163,7 @@ router.get("/search", userAuth, async (req, res) => {
 });
 
 // Count Tasks
-router.get("/count", userAuth, async (req, res) => {
+router.get("/count", async (req, res) => {
   try {
     const count = await TaskModel.count();
     return successResponse(res, "Task count fetched successfully", { count });
@@ -175,7 +174,7 @@ router.get("/count", userAuth, async (req, res) => {
 
 
 // Count Tasks by specific UserId
-router.get("/count-by-userId", userAuth, async (req, res) => {
+router.get("/count-by-userId", async (req, res) => {
   console.log(req.query);  // Log the incoming query parameters
   const { userId } = req.body;
 
@@ -195,7 +194,7 @@ router.get("/count-by-userId", userAuth, async (req, res) => {
 });
 
 // Task Page with User Reference
-router.get("/task-with-user", userAuth, async (req, res) => {
+router.get("/task-with-user", async (req, res) => {
   try {
     const tasks = await TaskModel.findAll({
       include: [{ model: UserModel, attributes: ['userId', 'email', 'firstName'] }]
@@ -208,7 +207,7 @@ router.get("/task-with-user", userAuth, async (req, res) => {
 
 
 // GET: /task-summary-by-user?userId=123
-router.get("/task-summary-by-user", userAuth, async (req, res) => {
+router.get("/task-summary-by-user", async (req, res) => {
   try {
     const { userId } = req.query;
 

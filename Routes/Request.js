@@ -6,16 +6,51 @@ const express = require('express');
 const router = express.Router();
 const { successResponse, errorResponse } = require("../Midileware/response");
 const { userAuth } = require("../Midileware/Auth");
+const multer = require('multer'); 
+const path = require('path');
+const { deleteImage } = require("../Midileware/deleteimages");
+const moment = require('moment'); 
 
-// Create Request
-router.post("/create", userAuth, async (req, res) => {
+
+
+// Image configuration
+const imageconfig = multer.diskStorage({
+  destination: (req, file, callback) => {
+    callback(null, "./storege/userdp");
+  },
+  filename: (req, file, callback) => {
+    callback(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: imageconfig,
+  limits: { fileSize: 1000000000 }
+});
+
+
+
+router.post("/create", userAuth, upload.none(), async (req, res) => {
   try {
-    const request = await requestModel.create({ ...req.body, userId: req.user.id });
+    console.log("Parsed request body:", req.body); // Debug
+
+    const request = await requestModel.create({
+      requestName: req.body.requestName,
+      requestBy: req.body.requestBy,
+      description: req.body.description,
+      taskId: req.body.taskId,
+      bidId: req.body.bidId,
+      requestAmount: req.body.requestAmount,
+      dateOfRequest: new Date().toISOString(), // or moment().format("YYYY-MM-DD")
+    });
+
     return successResponse(res, "Request created successfully", request);
   } catch (error) {
+    console.error("Create Request Error:", error);
     return errorResponse(res, "Error creating request", error);
   }
 });
+
 
 // Update Request
 router.patch("/update/:id", userAuth, async (req, res) => {

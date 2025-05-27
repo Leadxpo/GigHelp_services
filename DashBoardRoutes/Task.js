@@ -2,9 +2,10 @@ const express = require('express');
 const { sequelize } = require('../db');
 const TaskModel = require('../Models/Task')(sequelize);
 const UserModel = require('../Models/SystemUser')(sequelize);
+const BidModel = require('../Models/Bids')(sequelize);
 const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../Midileware/response");
-const { userAuth } = require("../Midileware/Auth");
+const { SystemUserAuth } = require("../Midileware/Auth");
 const { deleteImage } = require("../Midileware/deleteimages");
 const multer = require('multer');
 const path = require('path');
@@ -31,7 +32,7 @@ const upload = multer({
 
 // Set up multer for handling form data
 
-router.post("/create", userAuth, upload.array("document"), async (req, res) => {
+router.post("/create", SystemUserAuth, upload.array("document"), async (req, res) => {
   try {
     console.log("Received Body:", req.body);
     console.log("Received Files:", req.files);
@@ -65,7 +66,7 @@ router.post("/create", userAuth, upload.array("document"), async (req, res) => {
 
 
 // Update Task
-router.patch("/update-task", userAuth, async (req, res) => {
+router.patch("/update-task", SystemUserAuth, async (req, res) => {
   try {
     const { taskId } = req.body;
     const updatedTask = await TaskModel.update(req.body, { where: { taskId } });
@@ -76,7 +77,7 @@ router.patch("/update-task", userAuth, async (req, res) => {
 });
 
 // Delete Task
-router.delete("/delete-task", userAuth, async (req, res) => {
+router.delete("/delete-task", SystemUserAuth, async (req, res) => {
   try {
     const { taskId } = req.body;
     await TaskModel.destroy({ where: { taskId } });
@@ -86,7 +87,7 @@ router.delete("/delete-task", userAuth, async (req, res) => {
   }
 });
 
-router.get("/get-task", userAuth, async (req, res) => {
+router.get("/get-task", SystemUserAuth, async (req, res) => {
   try {
     const { taskId } = req.params;
 
@@ -114,7 +115,7 @@ router.get("/get-task", userAuth, async (req, res) => {
 });
 
 
-router.post("/get-task-by-user", userAuth, async (req, res) => {
+router.post("/get-task-by-user", SystemUserAuth, async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -143,7 +144,7 @@ router.post("/get-task-by-user", userAuth, async (req, res) => {
 
 
 // Get All Tasks
-router.get("/get-all", userAuth, async (req, res) => {
+router.get("/get-all", SystemUserAuth, async (req, res) => {
   try {
     const tasks = await TaskModel.findAll();
     return successResponse(res, "All tasks fetched successfully", tasks);
@@ -152,8 +153,53 @@ router.get("/get-all", userAuth, async (req, res) => {
   }
 });
 
+// Example request: GET /get-all?userId=123
+
+router.get("/get-all-userId", async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return errorResponse(res, "userId is required");
+    }
+
+    const tasks = await TaskModel.findAll({
+      where: { userId },
+    });
+
+    return successResponse(res, "Tasks fetched successfully", tasks);
+  } catch (error) {
+    return errorResponse(res, "Error fetching tasks", error);
+  }
+});
+
+
+router.get("/get-all-userId-work", async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return errorResponse(res, "userId is required");
+    }
+
+    const tasks = await TaskModel.findAll({
+      where: {
+        userId,
+        status: 'pending'  // filter tasks with status 'pending'
+      },
+    });
+
+    return successResponse(res, "Pending tasks fetched successfully", tasks);
+  } catch (error) {
+    return errorResponse(res, "Error fetching tasks", error);
+  }
+});
+
+
+
+
 // Search Task by Name
-router.get("/search", userAuth, async (req, res) => {
+router.get("/search", SystemUserAuth, async (req, res) => {
   try {
     const { name } = req.query;
     const tasks = await TaskModel.findAll({ where: { name: { [Op.like]: `%${name}%` } } });
@@ -164,7 +210,7 @@ router.get("/search", userAuth, async (req, res) => {
 });
 
 // Count Tasks
-router.get("/count", userAuth, async (req, res) => {
+router.get("/count", SystemUserAuth, async (req, res) => {
   try {
     const count = await TaskModel.count();
     return successResponse(res, "Task count fetched successfully", { count });
@@ -175,7 +221,7 @@ router.get("/count", userAuth, async (req, res) => {
 
 
 // Count Tasks by specific UserId
-router.get("/count-by-userId", userAuth, async (req, res) => {
+router.get("/count-by-userId", SystemUserAuth, async (req, res) => {
   console.log(req.query);  // Log the incoming query parameters
   const { userId } = req.body;
 
@@ -195,7 +241,7 @@ router.get("/count-by-userId", userAuth, async (req, res) => {
 });
 
 // Task Page with User Reference
-router.get("/task-with-user", userAuth, async (req, res) => {
+router.get("/task-with-user", SystemUserAuth, async (req, res) => {
   try {
     const tasks = await TaskModel.findAll({
       include: [{ model: UserModel, attributes: ['userId', 'email', 'firstName'] }]
@@ -208,25 +254,33 @@ router.get("/task-with-user", userAuth, async (req, res) => {
 
 
 // GET: /task-summary-by-user?userId=123
-router.get("/task-summary-by-user", userAuth, async (req, res) => {
+router.get("/task-summary-by-user", SystemUserAuth, async (req, res) => {
   try {
-    const { userId } = req.query;
+   const { userId } = req.query;
+    console.log("Query userId:", userId);
 
     if (!userId) {
       return errorResponse(res, "userId is required");
     }
 
-    const [totalTasks, disputeTasks, completedTasks] = await Promise.all([
+    const [
+      totalTasks,
+      disputeTasks,
+      completedTasks,
+      totalBids
+    ] = await Promise.all([
       TaskModel.count({ where: { userId } }),
       TaskModel.count({ where: { userId, status: 'dispute' } }),
       TaskModel.count({ where: { userId, status: 'completed' } }),
+      BidModel.count({ where: { userId } }), // Count bids by the user
     ]);
 
     return successResponse(res, "Task summary fetched successfully", {
       userId,
       totalTasks,
       disputeTasks,
-      completedTasks
+      completedTasks,
+      totalBids
     });
   } catch (error) {
     return errorResponse(res, "Error fetching task summary", error);
@@ -234,6 +288,35 @@ router.get("/task-summary-by-user", userAuth, async (req, res) => {
 });
 
 
+
+router.get("/get-all-count", SystemUserAuth, async (req, res) => {
+  try {
+    const tasks = await TaskModel.findAll();
+
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const stats = {
+      totalTasks: tasks.length,
+      taskUsersCount: new Set(tasks.map(task => task.userId)).size,
+      statusApproved: tasks.filter(task => task.status === "Approved").length,
+      statusPending: tasks.filter(task => task.status === "Pending").length,
+      totalCompleted: tasks.filter(task => task.status === "Completed").length,
+      totalDisputes: tasks.filter(task => task.disputes && task.disputes > 0).length,
+      last24hDisputes: tasks.filter(task =>
+        task.disputes && task.disputes > 0 &&
+        new Date(task.createdAt) >= twentyFourHoursAgo
+      ).length,
+    };
+
+    return successResponse(res, "All tasks fetched successfully", {
+      tasks,
+      stats,
+    });
+  } catch (error) {
+    return errorResponse(res, "Error fetching tasks", error);
+  }
+});
 
 
 module.exports = router;

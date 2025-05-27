@@ -62,4 +62,28 @@ const userAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { SystemUserAuth, userAuth };
+
+const appUserAuth = async (req, res, next) => {
+  try {
+    // Check if session has user data
+    if (!req.session.user || !req.session.user.userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Fetch user from database to confirm validity
+    const user = await UserModel.findOne({ where: { userId: req.session.user.userId } });
+
+    if (!user) {
+      return res.status(401).json({ error: "User does not exist" });
+    }
+
+    req.user = user; // Store user data in req.user
+    next();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
+module.exports = { SystemUserAuth, userAuth,appUserAuth };

@@ -4,10 +4,9 @@ const { Op } = require("sequelize");
 const express = require('express');
 const router = express.Router();
 const { successResponse, errorResponse } = require("../Midileware/response");
-const { userAuth } = require("../Midileware/Auth");
 
 // Create Subcategory
-router.post("/create", userAuth, async (req, res) => {
+router.post("/create", async (req, res) => {
   try {
     const subcategory = await subcategoryModel.create(req.body);
     return successResponse(res, "Subcategory created successfully", subcategory);
@@ -17,7 +16,7 @@ router.post("/create", userAuth, async (req, res) => {
 });
 
 // Update Subcategory
-router.patch("/update/:id", userAuth, async (req, res) => {
+router.patch("/update/:id", async (req, res) => {
   try {
     const subcategory = await subcategoryModel.update(req.body, { where: { id: req.params.id } });
     return successResponse(res, "Subcategory updated successfully", subcategory);
@@ -27,7 +26,7 @@ router.patch("/update/:id", userAuth, async (req, res) => {
 });
 
 // Delete Subcategory
-router.delete("/delete/:id", userAuth, async (req, res) => {
+router.delete("/delete/:id", async (req, res) => {
   try {
     await subcategoryModel.destroy({ where: { id: req.params.id } });
     return successResponse(res, "Subcategory deleted successfully");
@@ -37,7 +36,7 @@ router.delete("/delete/:id", userAuth, async (req, res) => {
 });
 
 // Get Subcategory By ID
-router.get("/get/:id", userAuth, async (req, res) => {
+router.get("/get/:id", async (req, res) => {
   try {
     const subcategory = await subcategoryModel.findOne({ where: { id: req.params.id } });
     return successResponse(res, "Subcategory fetched successfully", subcategory);
@@ -48,7 +47,7 @@ router.get("/get/:id", userAuth, async (req, res) => {
 
 
 // Get Subcategories by Category ID
-router.get("/get-all-categoryId", userAuth, async (req, res) => {
+router.get("/get-all-categoryId", async (req, res) => {
   try {
     const { categoryId } = req.query; // 
     if (!categoryId) {
@@ -68,7 +67,7 @@ router.get("/get-all-categoryId", userAuth, async (req, res) => {
 
 
 // Get All Subcategories
-router.get("/get-all", userAuth, async (req, res) => {
+router.get("/get-all", async (req, res) => {
   try {
     const subcategories = await subcategoryModel.findAll();
     return successResponse(res, "All subcategories fetched successfully", subcategories);
@@ -78,7 +77,7 @@ router.get("/get-all", userAuth, async (req, res) => {
 });
 
 // Search Subcategory By Name
-router.get("/search", userAuth, async (req, res) => {
+router.get("/search", async (req, res) => {
   try {
     const { name } = req.query;
     const subcategories = await subcategoryModel.findAll({ where: { name: { [Op.like]: `%${name}%` } } });
@@ -89,7 +88,7 @@ router.get("/search", userAuth, async (req, res) => {
 });
 
 // Count Subcategories
-router.get("/count", userAuth, async (req, res) => {
+router.get("/count", async (req, res) => {
   try {
     const count = await subcategoryModel.count();
     return successResponse(res, "Subcategory count fetched successfully", count);

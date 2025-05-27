@@ -4,11 +4,33 @@ const { Op } = require("sequelize");
 const express = require('express');
 const router = express.Router();
 const { successResponse, errorResponse } = require("../Midileware/response");
-const { userAuth } = require("../Midileware/Auth");
+const { SystemUserAuth } = require("../Midileware/Auth");
+const multer = require('multer'); 
+const path = require('path');
+const { deleteImage } = require("../Midileware/deleteimages");
+const moment = require('moment'); 
 
 
 
-router.post("/create", userAuth, async (req, res) => {
+// Image configuration
+const imageconfig = multer.diskStorage({
+  destination: (req, file, callback) => {
+    callback(null, "./storege/userdp");
+  },
+  filename: (req, file, callback) => {
+    callback(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: imageconfig,
+  limits: { fileSize: 1000000000 }
+});
+
+
+
+
+router.post("/create", SystemUserAuth, upload.single('categoryImage'), async (req, res) => {
   try {
     console.log("Request body:", req.body); // ✅ confirm structure
     const category = await categoryModel.create({
@@ -23,20 +45,50 @@ router.post("/create", userAuth, async (req, res) => {
 });
 
 
-// Update Category
-router.patch("/update/:id", userAuth, async (req, res) => {
-  try {
-    const category = await categoryModel.update(req.body, { where: { id: req.params.id } });
-    return successResponse(res, "Category updated successfully", category);
-  } catch (error) {
-    return errorResponse(res, "Error updating category", error);
+router.put(
+  "/update/:categoryId",
+  SystemUserAuth,
+  upload.single("categoryImage"),
+  async (req, res) => {
+    try {
+      const categoryId = req.params.categoryId;
+
+      // Step 1: Fetch existing category
+      const existingCategory = await categoryModel.findOne({ where: { categoryId } });
+      if (!existingCategory) {
+        return errorResponse(res, "Category not found");
+      }
+
+      // Step 2: Delete old image if new one is provided
+      if (req.file && existingCategory.categoryImage) {
+        const oldImagePath = `./storege/userdp/${existingCategory.categoryImage}`;
+        deleteImage(oldImagePath); // deleteImage should remove file from filesystem
+      }
+
+      // Step 3: Prepare update data
+      const updateData = {
+        categoryName: req.body.categoryName || existingCategory.categoryName,
+        description: req.body.description || existingCategory.description,
+      };
+
+      if (req.file) {
+        updateData.categoryImage = req.file.filename; // New uploaded image
+      }
+
+      // Step 4: Update the record
+      await categoryModel.update(updateData, { where: { categoryId } });
+
+      return successResponse(res, "Category updated successfully", updateData);
+    } catch (error) {
+      return errorResponse(res, "Error updating category", error);
+    }
   }
-});
+);
 
 // Delete Category
-router.delete("/delete/:id", userAuth, async (req, res) => {
+router.delete("/delete/:categoryId", SystemUserAuth, async (req, res) => {
   try {
-    await categoryModel.destroy({ where: { id: req.params.id } });
+    await categoryModel.destroy({ where: { categoryId: req.params.categoryId } });
     return successResponse(res, "Category deleted successfully");
   } catch (error) {
     return errorResponse(res, "Error deleting category", error);
@@ -44,7 +96,7 @@ router.delete("/delete/:id", userAuth, async (req, res) => {
 });
 
 // Get Category By ID
-router.get("/get/:id", userAuth, async (req, res) => {
+router.get("/get/:id", SystemUserAuth, async (req, res) => {
   try {
     const category = await categoryModel.findOne({ where: { id: req.params.id } });
     return successResponse(res, "Category fetched successfully", category);
@@ -54,7 +106,7 @@ router.get("/get/:id", userAuth, async (req, res) => {
 });
 
 // Get All Categories
-router.get("/get-all", userAuth, async (req, res) => {
+router.get("/get-all", SystemUserAuth, async (req, res) => {
   try {
     const categories = await categoryModel.findAll();
     return successResponse(res, "All categories fetched successfully", categories);
@@ -64,7 +116,7 @@ router.get("/get-all", userAuth, async (req, res) => {
 });
 
 // Search Category By Name
-router.get("/search", userAuth, async (req, res) => {
+router.get("/search", SystemUserAuth, async (req, res) => {
   try {
     const { name } = req.query;
     const categories = await categoryModel.findAll({ where: { categoryName: { [Op.like]: `%${name}%` } } });
@@ -75,7 +127,7 @@ router.get("/search", userAuth, async (req, res) => {
 });
 
 // Count Categories
-router.get("/count", userAuth, async (req, res) => {
+router.get("/count", SystemUserAuth, async (req, res) => {
   try {
     const count = await categoryModel.count();
     return successResponse(res, "Category count fetched successfully", count);

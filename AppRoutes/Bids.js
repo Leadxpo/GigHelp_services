@@ -82,9 +82,9 @@ router.post("/create", upload.array("biderDocument"), async (req, res) => {
 
 
 // Update Bid
-router.patch("/update/:id", async (req, res) => {
+router.patch("/update/:BidId", async (req, res) => {
   try {
-    const bid = await bidModel.update(req.body, { where: { id: req.params.id } });
+    const bid = await bidModel.update(req.body, { where: { BidId: req.params.BidId } });
     return successResponse(res, "Bid updated successfully", bid);
   } catch (error) {
     return errorResponse(res, "Error updating bid", error);
@@ -92,9 +92,9 @@ router.patch("/update/:id", async (req, res) => {
 });
 
 // Delete Bid
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:BidId", async (req, res) => {
   try {
-    await bidModel.destroy({ where: { id: req.params.id } });
+    await bidModel.destroy({ where: { BidId: req.params.BidId } });
     return successResponse(res, "Bid deleted successfully");
   } catch (error) {
     return errorResponse(res, "Error deleting bid", error);
@@ -113,13 +113,13 @@ router.get("/user/:userId", async (req, res) => {
 
 router.get("/get-by-bidid", async (req, res) => {
   try {
-    const { bidId } = req.query;
+    const { BidId } = req.query;
 
     if (!bidId) {
       return res.status(400).json({ success: false, message: "Missing bidId" });
     }
 
-    const bid = await bidModel.findOne({ where: { BidId: bidId } });
+    const bid = await bidModel.findOne({ where: { BidId: BidId } });
 
     if (!bid) {
       return res.status(404).json({ success: false, message: "Bid not found" });

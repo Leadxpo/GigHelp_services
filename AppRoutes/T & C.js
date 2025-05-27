@@ -3,14 +3,12 @@ const { sequelize } = require('../db');
 const userModel = require('../Models/t & c ')(sequelize);
 const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../Midileware/response");
-const { userAuth } = require("../Midileware/Auth");
-
 const router = express.Router();
 
 
 
 // Create Terms and Conditions
-router.post("/create", userAuth, async (req, res) => {
+router.post("/create",  async (req, res) => {
   try {
     const terms = await TermsModel.create({
       userId: req.user.id,
@@ -23,7 +21,7 @@ router.post("/create", userAuth, async (req, res) => {
 });
 
 // Update Terms and Conditions
-router.put("/update/:id", userAuth, async (req, res) => {
+router.put("/update/:id",  async (req, res) => {
   try {
     const terms = await TermsModel.findByPk(req.params.id);
     if (!terms) return errorResponse(res, "Terms not found");
@@ -36,7 +34,7 @@ router.put("/update/:id", userAuth, async (req, res) => {
 });
 
 // Delete Terms and Conditions
-router.delete("/delete/:id", userAuth, async (req, res) => {
+router.delete("/delete/:id",  async (req, res) => {
   try {
     const terms = await TermsModel.findByPk(req.params.id);
     if (!terms) return errorResponse(res, "Terms not found");
@@ -49,7 +47,7 @@ router.delete("/delete/:id", userAuth, async (req, res) => {
 });
 
 // Get Terms and Conditions by ID
-router.get("/get/:id", userAuth, async (req, res) => {
+router.get("/get/:id",  async (req, res) => {
   try {
     const terms = await TermsModel.findByPk(req.params.id);
     if (!terms) return errorResponse(res, "Terms not found");
@@ -61,7 +59,7 @@ router.get("/get/:id", userAuth, async (req, res) => {
 });
 
 // Get All Terms and Conditions
-router.get("/all", userAuth, async (req, res) => {
+router.get("/all",  async (req, res) => {
   try {
     const terms = await TermsModel.findAll();
     return successResponse(res, "All Terms and Conditions fetched successfully", terms);

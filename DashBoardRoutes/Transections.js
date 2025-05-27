@@ -50,9 +50,9 @@ router.get("/getbyId/:id", async (req, res) => {
 });
 
 // Get All Transactions
-router.get("/getall", async (req, res) => {
+router.get("/get-all", async (req, res) => {
   try {
-    const transactions = await transactionModel.findAll({ include: userModel });
+    const transactions = await transactionModel.findAll();
     return successResponse(res, "All transactions fetched successfully", transactions);
   } catch (error) {
     return errorResponse(res, "Error fetching transactions", error);

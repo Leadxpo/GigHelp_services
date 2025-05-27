@@ -67,18 +67,18 @@ const createtable = () => {
     try {
         sequelize.authenticate();
 
-        systemUser.sync({ alter: false })
+        systemUser.sync({ alter: true })
         User.sync({ alter: false })
         Otp.sync({ alter: false })
         Task.sync({ alter: false })
         Tc.sync({ alter: false })
-        Request.sync({ alter: false })
+        Request.sync({ alter: true })
         Transaction.sync({ alter: false })
         Promotions.sync({ alter: false })
-        Bids.sync({ alter: true })
+        Bids.sync({ alter: false })
         Categories.sync({ alter: false })
         SubCategories.sync({ alter: false })
-        ChatBox.sync({ alter: true })
+        ChatBox.sync({ alter: false })
         Notification.sync({ alter: false })
 
 

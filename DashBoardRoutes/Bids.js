@@ -146,6 +146,45 @@ router.get("/get-all-bids", async (req, res) => {
   }
 });
 
+
+router.get("/get-all-bids-by-user", async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return errorResponse(res, "userId is required");
+    }
+
+    const bids = await bidModel.findAll({
+      where: { userId },
+    });
+
+    return successResponse(res, "Bids fetched successfully", bids);
+  } catch (error) {
+    return errorResponse(res, "Error fetching bids", error);
+  }
+});
+
+router.get("/get-all-bids-by-task", async (req, res) => {
+  try {
+    const { taskId } = req.query;
+
+    if (!taskId) {
+      return errorResponse(res, "taskId is required");
+    }
+
+    const bids = await bidModel.findAll({
+      where: { taskId },
+    });
+
+    return successResponse(res, "Bids fetched successfully", bids);
+  } catch (error) {
+    console.error("Error fetching bids by task:", error);
+    return errorResponse(res, "Error fetching bids", error.message || error);
+  }
+});
+
+
 // Search by Bid Name
 router.get("/search", async (req, res) => {
   try {

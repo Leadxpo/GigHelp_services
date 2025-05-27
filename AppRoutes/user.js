@@ -1,5 +1,5 @@
 const { sequelize } = require('../db');
-const systemUserModel = require('../Models/SystemUser')(sequelize);
+const userModel = require('../Models/Users')(sequelize);
 const { Op } = require("sequelize");
 const express = require('express');
 const router = express.Router();
@@ -9,7 +9,6 @@ const path = require('path');
 const bcrypt = require("bcrypt");
 const { successResponse, errorResponse } = require("../Midileware/response");
 const { deleteImage } = require("../Midileware/deleteimages");
-const { SystemUserAuth } = require("../Midileware/Auth");
 
 // Image configuration
 const imageconfig = multer.diskStorage({
@@ -47,7 +46,7 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
     }
 
     // Create User
-    const user = systemUserModel.create(req.body);
+    const user = userModel.create(req.body);
     return successResponse(res, "User added successfully", user);
   } catch (error) {
     console.error("Error Saving User:", error);
@@ -56,41 +55,25 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
 });
 
 
-// Login Route
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = systemUserModel.findOne({ where: { email } });
+    const user = await userModel.findOne({ where: { email } });
 
     if (!user) {
       return errorResponse(res, "User not found");
     }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       return errorResponse(res, "Invalid password");
     }
 
-    const token = jwt.sign(
-      { userId: user.userId, email: user.email, userName: user.userName },
-      "vamsi@1998"
-    );
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      sameSite: "None",
-      secure: true,
-      maxAge: 2 * 60 * 60 * 1000
-    });
+  
 
     return successResponse(res, "Login successful", {
-      token,
-      user: {
-        userId: user.userId,
-        email: user.email,
-        userName: user.userName,
-        role: user.role
-      }
+      user: req.session.user
     });
 
   } catch (error) {
@@ -98,12 +81,13 @@ router.post("/login", async (req, res) => {
   }
 });
 
+
 // Profile Route
-router.get("/get-user", SystemUserAuth, async (req, res) => {
+router.get("/get-user", async (req, res) => {
   try {
     const { userId } = req.user; // Extract userId from req.user
 
-    const user = systemUserModel.findOne({ where: { userId } });
+    const user = userModel.findOne({ where: { userId } });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -117,9 +101,9 @@ router.get("/get-user", SystemUserAuth, async (req, res) => {
 
 
 // Get All Profiles
-router.get("/all-user", SystemUserAuth, async (req, res) => {
+router.get("/all-user", async (req, res) => {
   try {
-    const users = systemUserModel.findAll();
+    const users = userModel.findAll();
     return successResponse(res, "All users fetched successfully", users);
   } catch (error) {
     return errorResponse(res, "Failed to fetch users", error);
@@ -127,10 +111,10 @@ router.get("/all-user", SystemUserAuth, async (req, res) => {
 });
 
 // Update User
-router.patch("/user-update", SystemUserAuth, upload.single("profilePic"), async (req, res) => {
+router.patch("/user-update", upload.single("profilePic"), async (req, res) => {
   try {
     const { userId } = req.user; // Extract userId from authenticated user
-    const user = systemUserModel.findOne({ where: { userId } });
+    const user = userModel.findOne({ where: { userId } });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -160,12 +144,12 @@ router.post("/logout", (req, res) => {
 });
 
 // Delete User by userId
-router.delete("/delete-user", SystemUserAuth, async (req, res) => {
+router.delete("/delete-user", async (req, res) => {
   try {
     const { userId } = req.user;
 
     // Find user by userId
-    const user = systemUserModel.findOne({ where: { userId } });
+    const user = userModel.findOne({ where: { userId } });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -185,7 +169,7 @@ router.delete("/delete-user", SystemUserAuth, async (req, res) => {
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email, newPassword } = req.body;
-    const user = systemUserModel.findOne({ where: { email } });
+    const user = userModel.findOne({ where: { email } });
 
     if (!user) {
       return errorResponse(res, "User does not exist");
@@ -201,7 +185,7 @@ router.post("/forgot-password", async (req, res) => {
 });
 
 // Reset Password
-router.post("/reset-password", SystemUserAuth, async (req, res) => {
+router.post("/reset-password", async (req, res) => {
   try {
     const { password, newPassword } = req.body;
     const user = req.user;

@@ -73,6 +73,16 @@ router.put("/update/:taskId", userAuth, async (req, res) => {
 });
 
 
+router.put("/update-status", userAuth, async (req, res) => {
+  try {
+    const { taskId } = req.body; // ← Get from params, not body
+    const updatedTask = await TaskModel.update(req.body, { where: { taskId } });
+    return successResponse(res, "Task updated successfully", updatedTask);
+  } catch (error) {
+    return errorResponse(res, "Error updating task", error);
+  }
+});
+
 // Delete Task
 router.delete("/delete/:taskId", userAuth, async (req, res) => {
   try {

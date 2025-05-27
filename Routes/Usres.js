@@ -161,15 +161,27 @@ router.get("/get-user", userAuth, async (req, res) => {
 });
 
 
-// Get All Profiles
+// controllers/user.js or wherever your route handler is
 router.get("/all-user", userAuth, async (req, res) => {
   try {
-    const users = UserModel.findAll();
-    return successResponse(res, "All users fetched successfully", users);
+    const users = await UserModel.findAll(); // ✅ Ensure await is used
+
+    return res.status(200).json({
+      success: true,
+      message: "All users fetched successfully",
+      data: users,
+      error: null,
+    });
   } catch (error) {
-    return errorResponse(res, "Failed to fetch users", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch users",
+      data: null,
+      error: error.message,
+    });
   }
 });
+
 
 router.put(
   "/user-update/:userId",
