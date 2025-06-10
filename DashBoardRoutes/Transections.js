@@ -6,15 +6,20 @@ const express = require('express');
 const router = express.Router();
 const { successResponse, errorResponse } = require("../Midileware/response");
 
-// Create Transaction
+
+
+
 router.post("/create", async (req, res) => {
   try {
+    console.log("Received transaction data:", req.body); // ✅ Debug line
     const transaction = await transactionModel.create(req.body);
     return successResponse(res, "Transaction created successfully", transaction);
   } catch (error) {
+    console.error("Transaction creation error:", error); // ✅ Log error
     return errorResponse(res, "Error creating transaction", error);
   }
 });
+
 
 // Update Transaction
 router.patch("/update/:id", async (req, res) => {

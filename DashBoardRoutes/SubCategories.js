@@ -9,6 +9,8 @@ const multer = require('multer');
 const path = require('path');
 const { deleteImage } = require("../Midileware/deleteimages");
 const moment = require('moment'); 
+const fs = require("fs");
+const Papa = require("papaparse");
 
 
 
@@ -169,5 +171,79 @@ router.get("/count", SystemUserAuth, async (req, res) => {
     return errorResponse(res, "Error counting subcategories", error);
   }
 });
+
+
+
+const csvStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "./uploads"),
+  filename: (req, file, cb) => cb(null, `category_upload_${Date.now()}${path.extname(file.originalname)}`)
+});
+
+const csvUpload = multer({ storage: csvStorage });
+
+router.post("/upload-csv", SystemUserAuth, csvUpload.single("csv_file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return errorResponse(res, "CSV file is required");
+    }
+
+    const filePath = req.file.path;
+    const csvFile = fs.readFileSync(filePath, "utf8");
+
+    Papa.parse(csvFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const data = results.data;
+
+        let processed = [];
+        for (const row of data) {
+          const { categoryId, SubCategoryName, description, subCategoryImage } = row;
+
+          if (!SubCategoryName) continue;
+
+          let categoryRecord;
+          if (categoryId) {
+            categoryRecord = await subcategoryModel.findOne({ where: { categoryId } });
+          }
+
+          if (categoryRecord) {
+            await subcategoryModel.update(
+              {
+                SubCategoryName: SubCategoryName || categoryRecord.SubCategoryName,
+                description: description || categoryRecord.description,
+                subCategoryImage: subCategoryImage || categoryRecord.subCategoryImage,
+              },
+              { where: { categoryId } }
+            );
+            processed.push({ categoryId, status: "updated" });
+          } else {
+            const newCategory = await subcategoryModel.create({
+              SubCategoryName,
+              description,
+              subCategoryImage,
+              categoryId, // ✅ Save categoryId explicitly
+            });
+            processed.push({ categoryId: newCategory.categoryId, status: "created" });
+          }
+        }
+
+        fs.unlinkSync(filePath);
+        return successResponse(res, "CSV processed successfully", processed);
+      },
+      error: (err) => {
+        fs.unlinkSync(filePath);
+        return errorResponse(res, "CSV parsing error", err);
+      },
+    });
+  } catch (error) {
+    return errorResponse(res, "CSV upload failed", error);
+  }
+});
+
+
+
+
+
 
 module.exports = router;

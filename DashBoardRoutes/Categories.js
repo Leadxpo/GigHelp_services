@@ -9,6 +9,8 @@ const multer = require('multer');
 const path = require('path');
 const { deleteImage } = require("../Midileware/deleteimages");
 const moment = require('moment'); 
+const fs = require("fs");
+const Papa = require("papaparse");
 
 
 
@@ -135,5 +137,80 @@ router.get("/count", SystemUserAuth, async (req, res) => {
     return errorResponse(res, "Error counting categories", error);
   }
 });
+
+
+const csvStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "./uploads"),
+  filename: (req, file, cb) => cb(null, `category_upload_${Date.now()}${path.extname(file.originalname)}`)
+});
+
+const csvUpload = multer({ storage: csvStorage });
+
+router.post("/upload-csv", SystemUserAuth, csvUpload.single("csv_file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return errorResponse(res, "CSV file is required");
+    }
+
+    const filePath = req.file.path;
+    const csvFile = fs.readFileSync(filePath, "utf8");
+
+    // Parse CSV content
+    Papa.parse(csvFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const data = results.data;
+
+        let processed = [];
+        for (const row of data) {
+          const { categoryId, categoryName, description, categoryImage } = row;
+
+          // Skip rows without required fields
+          if (!categoryName) continue;
+
+          let categoryRecord;
+          if (categoryId) {
+            categoryRecord = await categoryModel.findOne({ where: { categoryId } });
+          }
+
+          if (categoryRecord) {
+            await categoryModel.update(
+              {
+                categoryName: categoryName || categoryRecord.categoryName,
+                description: description || categoryRecord.description,
+                categoryImage: categoryImage || categoryRecord.categoryImage,
+              },
+              { where: { categoryId } }
+            );
+            processed.push({ categoryId, status: "updated" });
+          } else {
+            const newCategory = await categoryModel.create({
+              categoryName,
+              description,
+              categoryImage,
+            });
+            processed.push({ categoryId: newCategory.categoryId, status: "created" });
+          }
+        }
+
+        // Remove uploaded file after processing
+        fs.unlinkSync(filePath);
+
+        return successResponse(res, "CSV processed successfully", processed);
+      },
+      error: (err) => {
+        fs.unlinkSync(filePath);
+        return errorResponse(res, "CSV parsing error", err);
+      },
+    });
+  } catch (error) {
+    return errorResponse(res, "CSV upload failed", error);
+  }
+});
+
+
+
+
 
 module.exports = router;

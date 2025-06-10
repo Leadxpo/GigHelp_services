@@ -70,8 +70,6 @@ router.post("/login", async (req, res) => {
       return errorResponse(res, "Invalid password");
     }
 
-  
-
     return successResponse(res, "Login successful", {
       user: req.session.user
     });

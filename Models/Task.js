@@ -51,9 +51,8 @@ module.exports = (sequelize) => {
             allowNull: true
           },
           
-        description: { 
-            type: DataTypes.STRING 
-        },
+        description: { type: DataTypes.TEXT },
+
         status: {
             type: DataTypes.STRING,
             allowNull: false,

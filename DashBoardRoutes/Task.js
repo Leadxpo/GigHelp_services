@@ -66,7 +66,7 @@ router.post("/create", SystemUserAuth, upload.array("document"), async (req, res
 
 
 // Update Task
-router.patch("/update-task", SystemUserAuth, async (req, res) => {
+router.put("/update-task",  async (req, res) => {
   try {
     const { taskId } = req.body;
     const updatedTask = await TaskModel.update(req.body, { where: { taskId } });
