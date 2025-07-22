@@ -12,12 +12,15 @@ const moment = require('moment');
 const fs = require("fs");
 const Papa = require("papaparse");
 
-
+const uploadDir = path.join(__dirname, "../storage/category");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Image configuration
 const imageconfig = multer.diskStorage({
   destination: (req, file, callback) => {
-    callback(null, "./storege/userdp");
+    callback(null, uploadDir);
   },
   filename: (req, file, callback) => {
     callback(null, Date.now() + path.extname(file.originalname));
@@ -35,9 +38,11 @@ const upload = multer({
 router.post("/create", SystemUserAuth, upload.single('categoryImage'), async (req, res) => {
   try {
     console.log("Request body:", req.body); // ✅ confirm structure
+    const imageFile = req.file ? req.file.filename : null;
     const category = await categoryModel.create({
       categoryName: req.body.categoryName,
-      categoryImage: req.body.categoryImage,
+      // categoryImage: req.body.categoryImage,
+      categoryImage:imageFile,
       description: req.body.description
     });
     return successResponse(res, "Category created successfully", category);
@@ -63,7 +68,7 @@ router.put(
 
       // Step 2: Delete old image if new one is provided
       if (req.file && existingCategory.categoryImage) {
-        const oldImagePath = `./storege/userdp/${existingCategory.categoryImage}`;
+        const oldImagePath = `./storage/category/${existingCategory.categoryImage}`;
         deleteImage(oldImagePath); // deleteImage should remove file from filesystem
       }
 
@@ -90,8 +95,19 @@ router.put(
 // Delete Category
 router.delete("/delete/:categoryId", SystemUserAuth, async (req, res) => {
   try {
-    await categoryModel.destroy({ where: { categoryId: req.params.categoryId } });
-    return successResponse(res, "Category deleted successfully");
+    const { categoryId } = req.params;
+    const category = await categoryModel.findOne({ where: { categoryId } });
+
+    if (!category) {
+      return errorResponse(res, 'Category not found');
+    }
+
+    if (category.categoryImage) {
+      const imagePath = path.join(uploadDir, category.categoryImage);
+      deleteImage(imagePath);
+    }
+    await category.destroy();
+    return successResponse(res, 'Category deleted successfully');
   } catch (error) {
     return errorResponse(res, "Error deleting category", error);
   }

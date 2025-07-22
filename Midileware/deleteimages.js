@@ -1,16 +1,18 @@
 const fs = require("fs");
 const path = require("path");
 
-const deleteImage = async (imagePath) => {
+
+const deleteImage = async (filename) => {
+  const fullPath = path.join(__dirname, "../storage/userdp", filename); // 🔁 Ensure this matches your folder
+
   return new Promise((resolve, reject) => {
-    // ✅ imagePath should already be a full path
-    fs.unlink(imagePath, (error) => {
+    fs.unlink(fullPath, (error) => {
       if (error) {
         console.error("Image deletion error:", error);
         return reject(error);
       }
 
-      console.log("Successfully deleted:", imagePath);
+      console.log("Successfully deleted:", fullPath);
       return resolve(true);
     });
   });

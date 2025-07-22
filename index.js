@@ -50,6 +50,7 @@ const AppBids = require('./AppRoutes/Bids')
 const AppCategories = require('./AppRoutes/Categories')
 const AppSubCategories = require('./AppRoutes/SubCategories')
 const AppNotification = require('./AppRoutes/Notification')
+const AppChatBox=require('./AppRoutes/ChatBox')
 
 // const ChatBox = require('./Routes/ChatBox')
 
@@ -73,6 +74,14 @@ app.use(cors())
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ limit: '100mb', extended: 'true' }))
 app.use(bodyParser.json({ limit: '100mb' }))
+
+app.use('/images/category', express.static(path.join(__dirname, 'storage/category')));
+app.use('/images/subcategory', express.static(path.join(__dirname, 'storage/subCategory')));
+app.use('/images/userdp', express.static(path.join(__dirname, 'storage/userdp')));
+app.use('/images/task', express.static(path.join(__dirname, 'storage/task')));
+app.use('/images/chat', express.static(path.join(__dirname, 'storage/chat')));
+
+
 app.use('/storege', express.static(path.join(__dirname, 'storege')));
 
 // FOR WEB
@@ -112,6 +121,7 @@ app.use('/dashboard/notification', DashboardNotification)
 // FOR APP
 
 app.use('/1991/app/systemuser', AppUser)
+app.use('/1991/app/otp', AppOtp);
 app.use('/1991/app/task', AppTask)
 app.use('/1991/app/t&C', AppTc)
 app.use('/1991/app/request', AppRequest)
@@ -120,7 +130,7 @@ app.use('/1991/app/Bids', AppBids)
 app.use('/1991/app/categories', AppCategories)
 app.use('/1991/app/subcategories', AppSubCategories)
 app.use('/1991/app/notification', AppNotification)
-
+app.use('/1991/app/chatbox', AppChatBox)
 
 
 const port = 3001 || process.env.appport

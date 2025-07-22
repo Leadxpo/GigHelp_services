@@ -1,6 +1,6 @@
 const { sequelize } = require('../db');
 const bidModel = require('../Models/Bids')(sequelize);
-const userModel = require('../Models/SystemUser')(sequelize);
+const userModel = require('../Models/Users')(sequelize);
 const { Op } = require("sequelize");
 const express = require('express');
 const multer = require('multer'); 
@@ -113,13 +113,13 @@ router.get("/user/:userId", async (req, res) => {
 
 router.get("/get-by-bidid", async (req, res) => {
   try {
-    const { BidId } = req.query;
+    const { bidId } = req.query;
 
     if (!bidId) {
       return res.status(400).json({ success: false, message: "Missing bidId" });
     }
 
-    const bid = await bidModel.findOne({ where: { BidId: BidId } });
+    const bid = await bidModel.findOne({ where: { BidId: bidId } });
 
     if (!bid) {
       return res.status(404).json({ success: false, message: "Bid not found" });
@@ -166,6 +166,64 @@ router.get("/count", async (req, res) => {
     return successResponse(res, "Bid count fetched successfully", count);
   } catch (error) {
     return errorResponse(res, "Error fetching bid count", error);
+  }
+});
+
+router.get("/count/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Count total bids by userId
+    const totalBids = await bidModel.count({
+      where: { userId: userId },
+    });
+
+    // Count completed bids by userId (assuming status: 'completed')
+    const completedBids = await bidModel.count({
+      where: { userId: userId, status: 'completed' },
+    });
+
+    const result = {
+      totalBids,
+      completedBids,
+    };
+
+    return successResponse(res, "Bid counts fetched successfully", result);
+  } catch (error) {
+    return errorResponse(res, "Error fetching bid counts", error);
+  }
+});
+
+router.get("/users-by-task/:taskId", async (req, res) => {
+  try {
+    const { taskId } = req.params;
+
+    // Step 1: Find all bids with the given taskId
+    const bids = await bidModel.findAll({
+      where: { taskId },
+      attributes: ['userId']
+    });
+
+    // Step 2: Extract unique userIds from bids
+    const userIds = [...new Set(bids.map(bid => parseInt(bid.userId)))];
+
+    if (userIds.length === 0) {
+      return successResponse(res, "No users found for the given taskId", []);
+    }
+
+    // ✅ Step 3: Find user details using correct primary key field `userId`
+    const users = await userModel.findAll({
+      where: {
+        userId: {
+          [Op.in]: userIds
+        }
+      }
+    });
+
+    return successResponse(res, "Users fetched successfully based on taskId", users);
+  } catch (error) {
+    console.error("Error fetching users by taskId:", error);
+    return errorResponse(res, "Error fetching users by taskId", error);
   }
 });
 

@@ -39,7 +39,8 @@ router.post("/create", SystemUserAuth, upload.array("document"), async (req, res
 
     // build full file URLs
     const filePaths = req.files.map(
-      (file) => `http://localhost:3001/storege/userdp/${file.filename}`
+      // (file) => `http://localhost:3001/storege/userdp/${file.filename}`
+      (file) => `${file.filename}`
     );
 
     // create task with full URLs in 'document'

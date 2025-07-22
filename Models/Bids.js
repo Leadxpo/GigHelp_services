@@ -1,6 +1,6 @@
 const { request } = require("express");
 const { DataTypes } = require("sequelize");
-const moment = require('moment'); 
+const moment = require("moment");
 
 module.exports = (sequelize) => {
   const SubCategory = sequelize.define(
@@ -33,15 +33,13 @@ module.exports = (sequelize) => {
 
       bidUserId: { type: DataTypes.STRING },
 
-       taskUserId: { 
-            type: DataTypes.STRING 
-        },
+      taskUserId: {
+        type: DataTypes.STRING,
+      },
 
       userId: { type: DataTypes.STRING },
 
-
       taskId: { type: DataTypes.STRING },
-
 
       description: {
         type: DataTypes.TEXT,
@@ -51,15 +49,13 @@ module.exports = (sequelize) => {
         type: DataTypes.TEXT,
       },
 
- biderDocument: {
+      biderDocument: {
         type: DataTypes.JSON,
       },
 
-
- taskDocument: {
+      taskDocument: {
         type: DataTypes.JSON,
       },
-
 
       status: {
         type: DataTypes.STRING,

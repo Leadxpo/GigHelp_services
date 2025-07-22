@@ -1,11 +1,11 @@
-const { sequelize } = require('../db');
-const UserModel = require('../Models/Users')(sequelize);
+const { sequelize } = require("../db");
+const UserModel = require("../Models/Users")(sequelize);
 const { Op } = require("sequelize");
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const multer = require('multer'); 
+const multer = require("multer");
 const jwt = require("jsonwebtoken");
-const path = require('path');
+const path = require("path");
 const bcrypt = require("bcrypt");
 const { successResponse, errorResponse } = require("../Midileware/response");
 const { deleteImage } = require("../Midileware/deleteimages");
@@ -18,12 +18,12 @@ const imageconfig = multer.diskStorage({
   },
   filename: (req, file, callback) => {
     callback(null, Date.now() + path.extname(file.originalname));
-  }
+  },
 });
 
 const upload = multer({
   storage: imageconfig,
-  limits: { fileSize: 1000000000 }
+  limits: { fileSize: 1000000000 },
 });
 
 router.post("/register", upload.single("profilePic"), async (req, res) => {
@@ -54,7 +54,6 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
   }
 });
 
-
 // Login Route
 router.post("/login", async (req, res) => {
   try {
@@ -82,7 +81,7 @@ router.post("/login", async (req, res) => {
     );
 
     // Send token in the response header (Authorization)
-    res.setHeader('Authorization', `Bearer ${token}`);
+    res.setHeader("Authorization", `Bearer ${token}`);
 
     // Success Response
     return successResponse(res, "Login successful", {
@@ -104,20 +103,15 @@ router.post("/login", async (req, res) => {
         ifscCode: user.ifscCode,
         remarks: user.remarks,
 
-
-
-
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-      }
+      },
     });
-
   } catch (error) {
     console.error("Login Error:", error);
     return errorResponse(res, "Login failed", error.message);
   }
 });
-
 
 // Get Login User Details
 router.get("/login-user-details", SystemUserAuth, async (req, res) => {
@@ -126,22 +120,23 @@ router.get("/login-user-details", SystemUserAuth, async (req, res) => {
 
     const user = await UserModel.findOne({
       where: { userId },
-      attributes: { exclude: ['password'] } // Exclude password from response
+      attributes: { exclude: ["password"] }, // Exclude password from response
     });
 
     if (!user) {
       return errorResponse(res, "User not found");
     }
 
-    return successResponse(res, "Login user details fetched successfully", user);
+    return successResponse(
+      res,
+      "Login user details fetched successfully",
+      user
+    );
   } catch (error) {
     console.error("Error fetching login user details:", error);
     return errorResponse(res, "Failed to fetch login user details", error);
   }
 });
-
-
-
 
 // Profile Route
 router.get("/get-user", SystemUserAuth, async (req, res) => {
@@ -160,7 +155,6 @@ router.get("/get-user", SystemUserAuth, async (req, res) => {
   }
 });
 
-
 // Get All Profiles
 router.get("/all-users", SystemUserAuth, async (req, res) => {
   try {
@@ -170,16 +164,6 @@ router.get("/all-users", SystemUserAuth, async (req, res) => {
     return errorResponse(res, "Failed to fetch users", error);
   }
 });
-
-
-
-
-
-
-
-
-
-
 
 router.put(
   "/user-update/:userId",
@@ -194,7 +178,9 @@ router.put(
       const user = await UserModel.findOne({ where: { userId } });
 
       if (!user) {
-        return res.status(404).json({ success: false, message: "User not found" });
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
       }
 
       if (req.files?.profilePic?.[0]) {
@@ -202,19 +188,22 @@ router.put(
         req.body.profilePic = req.files.profilePic[0].filename;
       }
 
-    if (req.files?.identityProof?.length > 0) {
-  // Delete old identity proofs if needed
-  if (user.identityProof) {
-    const oldProofs = Array.isArray(user.identityProof) ? user.identityProof : [user.identityProof];
-    for (const proof of oldProofs) {
-      await deleteImage(proof);
-    }
-  }
+      if (req.files?.identityProof?.length > 0) {
+        // Delete old identity proofs if needed
+        if (user.identityProof) {
+          const oldProofs = Array.isArray(user.identityProof)
+            ? user.identityProof
+            : [user.identityProof];
+          for (const proof of oldProofs) {
+            await deleteImage(proof);
+          }
+        }
 
-  // Save multiple filenames as an array
-  req.body.identityProof = req.files.identityProof.map((file) => file.filename);
-}
-
+        // Save multiple filenames as an array
+        req.body.identityProof = req.files.identityProof.map(
+          (file) => file.filename
+        );
+      }
 
       const fieldsToUpdate = {
         userName: req.body.userName,
@@ -254,7 +243,9 @@ router.delete("/delete-user", SystemUserAuth, async (req, res) => {
     const user = await UserModel.findOne({ where: { userId } });
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     // Delete the user
@@ -266,7 +257,6 @@ router.delete("/delete-user", SystemUserAuth, async (req, res) => {
     return errorResponse(res, "User deletion failed", error);
   }
 });
-
 
 // Forgot Password
 router.post("/forgot-password", async (req, res) => {

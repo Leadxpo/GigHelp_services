@@ -1,29 +1,35 @@
-const { sequelize } = require('../db');
-const UserModel = require('../Models/Users')(sequelize);
+const { sequelize } = require("../db");
+const UserModel = require("../Models/Users")(sequelize);
 const { Op } = require("sequelize");
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const multer = require('multer'); 
+const multer = require("multer");
 const jwt = require("jsonwebtoken");
-const path = require('path');
+const path = require("path");
 const bcrypt = require("bcrypt");
 const { successResponse, errorResponse } = require("../Midileware/response");
 const { deleteImage } = require("../Midileware/deleteimages");
 const { userAuth } = require("../Midileware/Auth");
+const fs = require("fs");
+
+const uploadDir = path.join(__dirname, "../storage/userdp");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Image configuration
 const imageconfig = multer.diskStorage({
   destination: (req, file, callback) => {
-    callback(null, "./storege/userdp");
+    callback(null, uploadDir);
   },
   filename: (req, file, callback) => {
     callback(null, Date.now() + path.extname(file.originalname));
-  }
+  },
 });
 
 const upload = multer({
   storage: imageconfig,
-  limits: { fileSize: 1000000000 }
+  limits: { fileSize: 1000000000 },
 });
 
 router.post("/register", upload.single("profilePic"), async (req, res) => {
@@ -54,7 +60,6 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
   }
 });
 
-
 // Login Route
 router.post("/login", async (req, res) => {
   try {
@@ -82,7 +87,7 @@ router.post("/login", async (req, res) => {
     );
 
     // Send token in the response header (Authorization)
-    res.setHeader('Authorization', `Bearer ${token}`);
+    res.setHeader("Authorization", `Bearer ${token}`);
 
     // Success Response
     return successResponse(res, "Login successful", {
@@ -104,20 +109,15 @@ router.post("/login", async (req, res) => {
         ifscCode: user.ifscCode,
         remarks: user.remarks,
 
-
-
-
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-      }
+      },
     });
-
   } catch (error) {
     console.error("Login Error:", error);
     return errorResponse(res, "Login failed", error.message);
   }
 });
-
 
 // Get Login User Details
 router.get("/login-user-details", userAuth, async (req, res) => {
@@ -126,29 +126,30 @@ router.get("/login-user-details", userAuth, async (req, res) => {
 
     const user = await UserModel.findOne({
       where: { userId },
-      attributes: { exclude: ['password'] } // Exclude password from response
+      attributes: { exclude: ["password"] }, // Exclude password from response
     });
 
     if (!user) {
       return errorResponse(res, "User not found");
     }
 
-    return successResponse(res, "Login user details fetched successfully", user);
+    return successResponse(
+      res,
+      "Login user details fetched successfully",
+      user
+    );
   } catch (error) {
     console.error("Error fetching login user details:", error);
     return errorResponse(res, "Failed to fetch login user details", error);
   }
 });
 
-
-
-
 // Profile Route
 router.get("/get-user", userAuth, async (req, res) => {
   try {
     const { userId } = req.user; // Extract userId from req.user
 
-    const user = UserModel.findOne({ where: { userId } });
+    const user =await UserModel.findOne({ where: { userId } });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -159,7 +160,6 @@ router.get("/get-user", userAuth, async (req, res) => {
     return errorResponse(res, "Failed to fetch profile", error);
   }
 });
-
 
 // controllers/user.js or wherever your route handler is
 router.get("/all-user", userAuth, async (req, res) => {
@@ -182,7 +182,6 @@ router.get("/all-user", userAuth, async (req, res) => {
   }
 });
 
-
 router.put(
   "/user-update/:userId",
   userAuth,
@@ -196,27 +195,38 @@ router.put(
       const user = await UserModel.findOne({ where: { userId } });
 
       if (!user) {
-        return res.status(404).json({ success: false, message: "User not found" });
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
       }
+      console.log("request bodyyyy pic",req.body.profilePic)
+      console.log(req.body,"request bodyyyy before initiate")
+      console.log(req.files,"request bodyyyy files")
+      console.log(req.files.profilePic[0].filename,"request bodyyyy files profile")
 
       if (req.files?.profilePic?.[0]) {
         if (user.profilePic) await deleteImage(user.profilePic);
         req.body.profilePic = req.files.profilePic[0].filename;
       }
 
-    if (req.files?.identityProof?.length > 0) {
-  // Delete old identity proofs if needed
-  if (user.identityProof) {
-    const oldProofs = Array.isArray(user.identityProof) ? user.identityProof : [user.identityProof];
-    for (const proof of oldProofs) {
-      await deleteImage(proof);
-    }
-  }
+      console.log(req.body,"request bodyyyy after initiate")
 
-  // Save multiple filenames as an array
-  req.body.identityProof = req.files.identityProof.map((file) => file.filename);
-}
+      if (req.files?.identityProof?.length > 0) {
+        // Delete old identity proofs if needed
+        if (user.identityProof) {
+          const oldProofs = Array.isArray(user.identityProof)
+            ? user.identityProof
+            : [user.identityProof];
+          for (const proof of oldProofs) {
+            await deleteImage(proof);
+          }
+        }
 
+        // Save multiple filenames as an array
+        req.body.identityProof = req.files.identityProof.map(
+          (file) => file.filename
+        );
+      }
 
       const fieldsToUpdate = {
         userName: req.body.userName,
@@ -256,7 +266,9 @@ router.delete("/delete-user", userAuth, async (req, res) => {
     const user = await UserModel.findOne({ where: { userId } });
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     // Delete the user
@@ -268,7 +280,6 @@ router.delete("/delete-user", userAuth, async (req, res) => {
     return errorResponse(res, "User deletion failed", error);
   }
 });
-
 
 // Forgot Password
 router.post("/forgot-password", async (req, res) => {

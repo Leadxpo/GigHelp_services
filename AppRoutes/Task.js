@@ -14,7 +14,7 @@ const router = express.Router();
 // Image configuration
 const imageconfig = multer.diskStorage({
   destination: (req, file, callback) => {
-    callback(null, "./storege/userdp");
+    callback(null, "./storage/task");
   },
   filename: (req, file, callback) => {
     callback(null, Date.now() + path.extname(file.originalname));
@@ -37,13 +37,14 @@ router.post("/create", upload.array("document"), async (req, res) => {
 
     // build full file URLs
     const filePaths = req.files.map(
-      (file) => `http://localhost:3001/storege/userdp/${file.filename}`
+      // (file) => `http://localhost:3001/storage/task/${file.filename}`
+      (file) => `${file.filename}`
     );
 
     // create task with full URLs in 'document'
     const taskData = await TaskModel.create({
       ...req.body,
-      document: filePaths, // store full paths here
+      document: filePaths,
     });
 
     return res.status(201).json({
@@ -67,6 +68,7 @@ router.post("/create", upload.array("document"), async (req, res) => {
 router.patch("/update-task", async (req, res) => {
   try {
     const { taskId } = req.body;
+    console.log(req.body,"boddddd")
     const updatedTask = await TaskModel.update(req.body, { where: { taskId } });
     return successResponse(res, "Task updated successfully", updatedTask);
   } catch (error) {
@@ -144,7 +146,9 @@ router.post("/get-task-by-user", async (req, res) => {
 // Get All Tasks
 router.get("/get-all", async (req, res) => {
   try {
-    const tasks = await TaskModel.findAll();
+    const tasks = await TaskModel.findAll({
+      where:{status: "verified"},
+    });
     return successResponse(res, "All tasks fetched successfully", tasks);
   } catch (error) {
     return errorResponse(res, "Error fetching tasks", error);

@@ -8,14 +8,19 @@ const { userAuth } = require("../Midileware/Auth");
 const { deleteImage } = require("../Midileware/deleteimages");
 const multer = require('multer');
 const path = require('path');
+const fs = require("fs");
 
 const router = express.Router();
+const uploadDir = path.join(__dirname, "../storage/task");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 
 // Image configuration
 const imageconfig = multer.diskStorage({
   destination: (req, file, callback) => {
-    callback(null, "./storege/userdp");
+    callback(null, uploadDir);
   },
   filename: (req, file, callback) => {
     callback(null, Date.now() + path.extname(file.originalname));
