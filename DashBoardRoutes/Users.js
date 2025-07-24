@@ -183,39 +183,43 @@ router.put(
           .json({ success: false, message: "User not found" });
       }
 
-      if (req.files?.profilePic?.[0]) {
-        if (user.profilePic) await deleteImage(user.profilePic);
-        req.body.profilePic = req.files.profilePic[0].filename;
-      }
+      // if (req.files?.profilePic?.[0]) {
+      //   if (user.profilePic) await deleteImage(user.profilePic);
+      //   req.body.profilePic = req.files.profilePic[0].filename;
+      // }
 
-      if (req.files?.identityProof?.length > 0) {
-        // Delete old identity proofs if needed
-        if (user.identityProof) {
-          const oldProofs = Array.isArray(user.identityProof)
-            ? user.identityProof
-            : [user.identityProof];
-          for (const proof of oldProofs) {
-            await deleteImage(proof);
-          }
-        }
+      // if (req.files?.identityProof?.length > 0) {
+      //   // Delete old identity proofs if needed
+      //   if (user.identityProof) {
+      //     const oldProofs = Array.isArray(user.identityProof)
+      //       ? user.identityProof
+      //       : [user.identityProof];
+      //     for (const proof of oldProofs) {
+      //       await deleteImage(proof);
+      //     }
+      //   }
 
-        // Save multiple filenames as an array
-        req.body.identityProof = req.files.identityProof.map(
-          (file) => file.filename
-        );
-      }
+      //   // Save multiple filenames as an array
+      //   req.body.identityProof = req.files.identityProof.map(
+      //     (file) => file.filename
+      //   );
+      // }
+
+      console.log(req.body, "requesttttttt");
 
       const fieldsToUpdate = {
-        userName: req.body.userName,
-        email: req.body.email,
-        phoneNumber: req.body.phoneNumber,
-        address: req.body.address,
-        profilePic: req.body.profilePic,
-        identityProof: req.body.identityProof,
-        accountHolder: req.body.accountHolder,
-        accountNumber: req.body.accountNumber,
-        bankName: req.body.bankName,
-        ifscCode: req.body.ifscCode,
+        // userName: req.body.userName,
+        // email: req.body.email,
+        // phoneNumber: req.body.phoneNumber,
+        // address: req.body.address,
+        // profilePic: req.body.profilePic,
+        // identityProof: req.body.identityProof,
+        // accountHolder: req.body.accountHolder,
+        // accountNumber: req.body.accountNumber,
+        // bankName: req.body.bankName,
+        // ifscCode: req.body.ifscCode,
+        status: req.body.status,
+        remarks: req.body.remarks,
       };
 
       await user.update(fieldsToUpdate);

@@ -21,12 +21,10 @@ module.exports = (Sequelize) => {
       address: { type: DataTypes.STRING },
 
       gender: { type: DataTypes.STRING },
-
-      remarks: { type: DataTypes.STRING },
-
+      
+      remarks: { type: DataTypes.JSON, allowNull: true },
 
       identityProof: { type: DataTypes.JSON, allowNull: true },
-
 
       identityNumber: { type: DataTypes.STRING, JSON },
 
@@ -44,13 +42,11 @@ module.exports = (Sequelize) => {
 
       ifscCode: { type: DataTypes.JSON },
 
-
-
       status: {
         type: DataTypes.STRING,
         defaultValue: "Pending",
         validate: {
-          isIn: [["Declined", "Approved", "Pending","Rejected"]],
+          isIn: [["Declined", "Approved", "Pending", "Rejected"]],
         },
       },
 

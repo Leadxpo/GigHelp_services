@@ -195,24 +195,30 @@ router.put(
       const user = await UserModel.findOne({ where: { userId } });
 
       if (!user) {
-        return res
-          .status(404)
-          .json({ success: false, message: "User not found" });
+        return res.status(404).json({ success: false, message: "User not found" });
       }
-      console.log("request bodyyyy pic",req.body.profilePic)
-      console.log(req.body,"request bodyyyy before initiate")
-      console.log(req.files,"request bodyyyy files")
-      console.log(req.files.profilePic[0].filename,"request bodyyyy files profile")
 
+      console.log("Request Body:", req.body);
+      console.log("Files received:", Object.keys(req.files || {}));
+
+      // ✅ Optional: Update profilePic if sent
       if (req.files?.profilePic?.[0]) {
-        if (user.profilePic) await deleteImage(user.profilePic);
-        req.body.profilePic = req.files.profilePic[0].filename;
+        const newProfilePic = req.files.profilePic[0].filename;
+        console.log("Updating profilePic:", newProfilePic);
+
+        if (user.profilePic) {
+          await deleteImage(user.profilePic); // Delete old one
+        }
+
+        req.body.profilePic = newProfilePic;
       }
 
-      console.log(req.body,"request bodyyyy after initiate")
-
+      // ✅ Optional: Update identityProof if sent
       if (req.files?.identityProof?.length > 0) {
-        // Delete old identity proofs if needed
+        const newProofs = req.files.identityProof.map(file => file.filename);
+        console.log("Updating identityProofs:", newProofs);
+
+        // Remove old identity proofs if present
         if (user.identityProof) {
           const oldProofs = Array.isArray(user.identityProof)
             ? user.identityProof
@@ -222,12 +228,10 @@ router.put(
           }
         }
 
-        // Save multiple filenames as an array
-        req.body.identityProof = req.files.identityProof.map(
-          (file) => file.filename
-        );
+        req.body.identityProof = newProofs;
       }
 
+      // ✅ Fields to update
       const fieldsToUpdate = {
         userName: req.body.userName,
         email: req.body.email,
@@ -250,6 +254,7 @@ router.put(
     }
   }
 );
+
 
 // Logout
 router.post("/logout", (req, res) => {
