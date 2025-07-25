@@ -135,7 +135,7 @@ app.use('/1991/app/chatbox', AppChatBox)
 
 const port = 3001 || process.env.appport
 const sarver = http.createServer(app)
-sarver.listen(port, () => {
+sarver.listen(port, '0.0.0.0', () => {
     console.log("servar is running at port", +port)
 
 });

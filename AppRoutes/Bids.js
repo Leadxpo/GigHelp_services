@@ -42,6 +42,8 @@ router.post("/create", upload.array("biderDocument"), async (req, res) => {
       taskId,
       taskDescription,
       bidOfAmount,
+      taskUserId,
+      bidUserId
     } = req.body;
 
     if (!Categories) {
@@ -70,6 +72,8 @@ router.post("/create", upload.array("biderDocument"), async (req, res) => {
       taskDescription,
       bidOfAmount,
       dateOfBids,
+      taskUserId,
+      bidUserId,
       status: 'pending',
     });
 
@@ -102,14 +106,32 @@ router.delete("/delete/:BidId", async (req, res) => {
 });
 
 // Get Bid by User ID
+
 router.get("/user/:userId", async (req, res) => {
   try {
     const bids = await bidModel.findAll({ where: { userId: req.params.userId } });
-    return successResponse(res, "Bids fetched successfully", bids);
+
+    const enrichedBids = await Promise.all(
+      bids.map(async (bid) => {
+        const [bidUser, taskUser] = await Promise.all([
+          userModel.findOne({ where: { userId: bid.bidUserId } }),
+          userModel.findOne({ where: { userId: bid.taskUserId } }),
+        ]);
+
+        return {
+          ...bid.toJSON(),
+          bidUser,
+          taskUser,
+        };
+      })
+    );
+
+    return successResponse(res, "Bids with user details fetched successfully", enrichedBids);
   } catch (error) {
-    return errorResponse(res, "Error fetching bids", error);
+    return errorResponse(res, "Error fetching bids with user details", error);
   }
 });
+
 
 router.get("/get-by-bidid", async (req, res) => {
   try {
