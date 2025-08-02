@@ -146,7 +146,9 @@ router.get("/get-user", async (req, res) => {
 router.get("/all-user", async (req, res) => {
   try {
     const users = userModel.findAll();
+    console.log(users,"users")
     return successResponse(res, "All users fetched successfully", users);
+    
   } catch (error) {
     return errorResponse(res, "Failed to fetch users", error);
   }
@@ -184,6 +186,8 @@ router.patch(
       // Final merged array
       const updatedProofs = [...existingProofs, ...uploadedProofs];
       req.body.identityProof = JSON.stringify(updatedProofs);
+
+      console.log(updatedProofs,"identity proof json checking")
 
       // ProfilePic update
       if (req.files["profilePic"] && req.files["profilePic"][0]) {
