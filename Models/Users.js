@@ -8,9 +8,11 @@ module.exports = (Sequelize) => {
         primaryKey: true,
         autoIncrement: true,
       },
-      userName: { type: DataTypes.STRING },
+      name: { type: DataTypes.STRING },
 
-      phoneNumber: { type: DataTypes.STRING },
+      userName: { type: DataTypes.STRING, unique: true },
+
+      phoneNumber: { type: DataTypes.STRING, unique: true },
 
       email: { type: DataTypes.STRING, unique: true },
 
@@ -21,7 +23,7 @@ module.exports = (Sequelize) => {
       address: { type: DataTypes.STRING },
 
       gender: { type: DataTypes.STRING },
-      
+
       remarks: { type: DataTypes.JSON, allowNull: true },
 
       identityProof: { type: DataTypes.JSON, allowNull: true },

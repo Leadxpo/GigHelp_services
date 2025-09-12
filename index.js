@@ -32,7 +32,10 @@ const DashboardRequest = require('./DashBoardRoutes/Requests')
 const DashboardTransaction = require('./DashBoardRoutes/Transections')
 const DashboardCategories = require('./DashBoardRoutes/Categories')
 const DashboardSubCategories = require('./DashBoardRoutes/SubCategories')
+const DashboardChatBox = require('./DashBoardRoutes/ChatBox')
 const DashboardNotification = require('./DashBoardRoutes/Notification')
+const DashboardDisputes = require('./DashBoardRoutes/Disputes')
+const DashboardAdminChats = require('./DashBoardRoutes/AdminChats')
 
 // const DashboardChatBox = require('./DashBoardRoutes/')
 
@@ -51,6 +54,8 @@ const AppCategories = require('./AppRoutes/Categories')
 const AppSubCategories = require('./AppRoutes/SubCategories')
 const AppNotification = require('./AppRoutes/Notification')
 const AppChatBox=require('./AppRoutes/ChatBox')
+const AppDisputes = require('./AppRoutes/Disputes')
+const AppAdminChats=require('./AppRoutes/AdminChats')
 
 // const ChatBox = require('./Routes/ChatBox')
 
@@ -80,6 +85,7 @@ app.use('/images/subcategory', express.static(path.join(__dirname, 'storage/subC
 app.use('/images/userdp', express.static(path.join(__dirname, 'storage/userdp')));
 app.use('/images/task', express.static(path.join(__dirname, 'storage/task')));
 app.use('/images/chat', express.static(path.join(__dirname, 'storage/chat')));
+app.use('/images/disputes', express.static(path.join(__dirname, 'storage/disputes')));
 
 
 app.use('/storege', express.static(path.join(__dirname, 'storege')));
@@ -112,7 +118,10 @@ app.use('/dashboard/transections', DashboardTransaction)
 app.use('/dashboard/Bids', DashboardBids)
 app.use('/dashboard/categories', DashboardCategories)
 app.use('/dashboard/subcategories', DashboardSubCategories)
+app.use('/dashboard/chatbox', DashboardChatBox)
 app.use('/dashboard/notification', DashboardNotification)
+app.use('/dashboard/disputes', DashboardDisputes)
+app.use('/dashboard/adminchats', DashboardAdminChats)
 
 // app.use('/dashboard/chatbox', DashboardChatBox)
 
@@ -131,6 +140,8 @@ app.use('/1991/app/categories', AppCategories)
 app.use('/1991/app/subcategories', AppSubCategories)
 app.use('/1991/app/notification', AppNotification)
 app.use('/1991/app/chatbox', AppChatBox)
+app.use('/1991/app/dispute', AppDisputes)
+app.use('/1991/app/adminchats', AppAdminChats)
 
 
 const port = 3001 || process.env.appport

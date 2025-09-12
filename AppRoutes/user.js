@@ -33,69 +33,70 @@ const upload = multer({
 
 router.post("/register", upload.single("profilePic"), async (req, res) => {
   try {
-    console.log("Received Data:", req.body);
+    const { email, userName, phoneNumber, password } = req.body;
 
-    // Hash password
-    if (req.body.password) {
-      req.body.password = await bcrypt.hash(req.body.password, 10);
+    // 1️⃣ Validate required fields
+    if (!email || !userName || !phoneNumber || !password) {
+      return errorResponse(res, "Please fill all required fields");
     }
 
-    // Handle file upload
+    // 3️⃣ Check for duplicate entries in MongoDB
+    const existingUser = await userModel.findOne({
+      where: {
+        [Op.or]: [{ email }, { userName }, { phoneNumber }],
+      },
+    });
+    console.log(existingUser, "existing user");
+
+    if (existingUser) {
+      let errors = {};
+
+      if (existingUser.email === email) {
+        errors.email = "Email already exists";
+      }
+      if (existingUser.userName === userName) {
+        errors.userName = "User Name already exists";
+      }
+      if (existingUser.phoneNumber === phoneNumber) {
+        errors.phoneNumber = "Phone number already exists";
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: "Duplicate fields found",
+        errors, // structured errors for frontend
+      });
+    }
+
+    // 4️⃣ Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 5️⃣ Handle file upload
+    let profilePic = null;
     if (req.file) {
-      req.body.profilePic = req.file.filename;
-      console.log("Uploaded File:", req.file.filename);
+      profilePic = req.file.filename;
     }
 
-    // Generate UUID if `userId` is not provided
-    // if (!req.body.userId) {
-    //   req.body.userId = require("uuid").v4();
-    // }
+    // 6️⃣ Create new user
+    const newUser = new userModel({
+      ...req.body,
+      password: hashedPassword,
+      profilePic,
+    });
 
-    // Create User
-    const user = userModel.create(req.body);
-    return successResponse(res, "User added successfully", user);
+    await newUser.save();
+
+    return successResponse(res, "User registered successfully", newUser);
   } catch (error) {
     console.error("Error Saving User:", error);
     return errorResponse(res, "Error saving user", error);
   }
 });
 
-// router.post("/login", async (req, res) => {
-//   console.log("check1")
-//   try {
-//     console.log("check2")
-//     const { email, password } = req.body;
-//     const user = await userModel.findOne({ where: { email } });
-
-//     if (!user) {
-//       return errorResponse(res, "User not found");
-//     }
-//     console.log("check3")
-
-//     const isPasswordValid = await bcrypt.compare(password, user.password);
-
-//     if (!isPasswordValid) {
-//       return errorResponse(res, "Invalid password");
-//     }
-//     console.log("check4")
-//     req.session.user = user;
-//     console.log(user,"user data")
-
-//     return successResponse(res, "Login successful", {
-//       user: req.session.user
-//     });
-
-//   } catch (error) {
-//     return errorResponse(res, "Login failed", error);
-//   }
-// });
-
-//Login
-
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await userModel.findOne({ where: { email } });
+    const { userName, password } = req.body;
+    const user = await userModel.findOne({ where: { userName } });
 
     if (!user) {
       return errorResponse(res, "User not found");
@@ -112,6 +113,7 @@ router.post("/login", async (req, res) => {
     const safeUser = {
       userId: user.userId,
       userName: user.userName,
+      name: user.name,
       email: user.email,
       phoneNumber: user.phoneNumber,
     };
@@ -146,15 +148,117 @@ router.get("/get-user", async (req, res) => {
 router.get("/all-user", async (req, res) => {
   try {
     const users = userModel.findAll();
-    console.log(users,"users")
+    console.log(users, "users");
     return successResponse(res, "All users fetched successfully", users);
-    
   } catch (error) {
     return errorResponse(res, "Failed to fetch users", error);
   }
 });
 
-// Update User
+//working API
+
+// router.patch(
+//   "/user-update",
+//   upload.fields([
+//     { name: "profilePic", maxCount: 1 },
+//     { name: "identityProof", maxCount: 10 },
+//   ]),
+//   async (req, res) => {
+//     try {
+//       const { userId, proofTypes, status, remarks } = req.body;
+
+//       console.log(req.body, req.files, "frontend data");
+
+//       const user = await userModel.findOne({ where: { userId } });
+//       if (!user) return res.status(404).json({ message: "User not found" });
+
+//       // Use the array directly, since it's stored as JSON
+//       const prevIdentityProofs = Array.isArray(user.identityProof)
+//         ? user.identityProof
+//         : [];
+
+//       // Step 2: Parse existing proofs from request body
+//       let existingProofsRaw = req.body["existingIdentityProofs"];
+
+//       let existingIdentityProofs = [];
+
+//       if (Array.isArray(existingProofsRaw)) {
+//         existingIdentityProofs = existingProofsRaw.map((p) => JSON.parse(p));
+//       } else if (typeof existingProofsRaw === "string") {
+//         existingIdentityProofs = [JSON.parse(existingProofsRaw)];
+//       }
+
+//       const newFiles = req.files?.identityProof || [];
+
+//       const proofTypeArray = Array.isArray(proofTypes)
+//         ? proofTypes
+//         : typeof proofTypes === "string"
+//         ? [proofTypes]
+//         : [];
+
+//       const newIdentityProofs = newFiles.map((file, index) => ({
+//         type: proofTypeArray[index] || "Unknown",
+//         file: file.filename,
+//         status: "Pending",
+//         description: "Verification under process",
+//       }));
+
+//       // Step 4: Combine existing + new proofs
+//       const updatedIdentityProofs = [
+//         ...existingIdentityProofs,
+//         ...newIdentityProofs,
+//       ];
+
+//       // const newProofTypes = Array.isArray(proofTypes)
+//       //   ? proofTypes
+//       //   : typeof proofTypes === "string"
+//       //   ? [proofTypes]
+//       //   : [];
+
+//       // const newFiles = req.files?.identityProof || [];
+
+//       // // Create new proof objects
+//       // const newIdentityProofs = newFiles.map((file, index) => ({
+//       //   type: newProofTypes[index] || "Unknown",
+//       //   file: file.filename,
+//       //   status: "Pending",
+//       //   description: "Verification under process",
+//       // }));
+
+//       // // Combine previous and new
+//       // const updatedIdentityProofs = [
+//       //   ...prevIdentityProofs,
+//       //   ...newIdentityProofs,
+//       // ];
+
+//       console.log("start of identity proofs");
+//       console.log(req.body, "frontend data");
+//       console.log(newIdentityProofs, "new proofs");
+//       console.log(prevIdentityProofs, "previous proofs from backend");
+//       console.log(existingProofsRaw, "existing proofs from frontend");
+//       console.log(updatedIdentityProofs, "updated proofs");
+
+//       // Update user
+//       await userModel.update(
+//         {
+//           identityProof: updatedIdentityProofs,
+//           status,
+//           remarks,
+//           updatedAt: new Date(),
+//         },
+//         {
+//           where: { userId },
+//         }
+//       );
+
+//       res.status(200).json({ message: "Identity Proofs updated successfully" });
+//     } catch (err) {
+//       console.error("Update error:", err);
+//       res.status(500).json({ message: "Server error", error: err.message });
+//     }
+//   }
+// );
+
 router.patch(
   "/user-update",
   upload.fields([
@@ -163,52 +267,121 @@ router.patch(
   ]),
   async (req, res) => {
     try {
-      const { userId } = req.body;
-      console.log(req.body,"reeeee")
+      const { userId, proofTypes } = req.body;
+
+      console.log(req.body, req.files, "frontend data");
+
+      // Ensure userId is provided
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
 
       const user = await userModel.findOne({ where: { userId } });
-      if (!user) return res.status(404).json({ error: "User not found" });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
-      // Clean existing identityProof
-      let existingProofs = [];
-      if (typeof user.identityProof === "string") {
+      const updateData = {
+        updatedAt: new Date(),
+      };
+
+      // ================== Profile Pic ===================
+      if (req.files?.profilePic?.length > 0) {
+        updateData.profilePic = req.files.profilePic[0].filename;
+      }
+
+      // ================== Identity Proofs ===================
+      const hasNewProofs = req.files?.identityProof?.length > 0;
+      const hasExistingProofs = req.body.existingIdentityProofs;
+
+      if (hasNewProofs || hasExistingProofs) {
+        const prevIdentityProofs = Array.isArray(user.identityProof)
+          ? user.identityProof
+          : [];
+
+        let existingProofsRaw = req.body["existingIdentityProofs"];
+        let existingIdentityProofs = [];
+
+        if (Array.isArray(existingProofsRaw)) {
+          existingIdentityProofs = existingProofsRaw.map((p) => JSON.parse(p));
+        } else if (typeof existingProofsRaw === "string") {
+          existingIdentityProofs = [JSON.parse(existingProofsRaw)];
+        }
+
+        const newFiles = req.files?.identityProof || [];
+        const proofTypeArray = Array.isArray(proofTypes)
+          ? proofTypes
+          : typeof proofTypes === "string"
+          ? [proofTypes]
+          : [];
+
+        const newIdentityProofs = newFiles.map((file, index) => ({
+          type: proofTypeArray[index] || "Unknown",
+          file: file.filename,
+          status: "Pending",
+          description: "Verification under process",
+        }));
+
+        updateData.identityProof = [
+          ...existingIdentityProofs,
+          ...newIdentityProofs,
+        ];
+      }
+
+      // ================== Skills ===================
+      if (req.body.skills) {
         try {
-          existingProofs = JSON.parse(user.identityProof);
-        } catch (e) {
-          existingProofs = [];
+          updateData.skills = JSON.parse(req.body.skills);
+        } catch (parseError) {
+          return res
+            .status(400)
+            .json({ message: "Invalid skills format. Must be JSON." });
         }
       }
 
-      // New uploaded files
-      const uploadedProofs =
-        req.files["identityProof"]?.map((f) => f.filename) || [];
-
-      // Final merged array
-      const updatedProofs = [...existingProofs, ...uploadedProofs];
-      req.body.identityProof = JSON.stringify(updatedProofs);
-
-      console.log(updatedProofs,"identity proof json checking")
-
-      // ProfilePic update
-      if (req.files["profilePic"] && req.files["profilePic"][0]) {
-        req.body.profilePic = req.files["profilePic"][0].filename;
+      // ================== Status ===================
+      if (req.body.status !== undefined) {
+        updateData.status = req.body.status;
       }
 
-      // Other fields
-      if (req.body.skills) {
-        req.body.skills = JSON.parse(req.body.skills);
+      // ================== Remarks ===================
+      if (req.body.remarks !== undefined) {
+        updateData.remarks = req.body.remarks;
       }
 
-      await user.update(req.body);
+      // ================== Contact Info ===================
+      const contactFields = ["userName", "email", "phoneNumber", "address"];
+      contactFields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          updateData[field] = req.body[field];
+        }
+      });
 
-      return successResponse(res, "Profile updated successfully", user);
-    } catch (error) {
-      console.error("Error in user update:", error);
-      return errorResponse(res, "Profile update failed", error);
+      // ================== Bank Details ===================
+      const bankFields = [
+        "accountHolder",
+        "bankName",
+        "accountNumber",
+        "ifscCode",
+      ];
+      bankFields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          updateData[field] = req.body[field];
+        }
+      });
+
+      // ================== Final Update ===================
+      await userModel.update(updateData, {
+        where: { userId },
+      });
+
+      res.status(200).json({ message: "User updated successfully" });
+    } catch (err) {
+      console.error("Update error:", err);
+      res.status(500).json({ message: "Server error", error: err.message });
     }
   }
 );
-
 
 // Logout
 router.post("/logout", (req, res) => {

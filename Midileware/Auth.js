@@ -12,7 +12,7 @@ const SystemUserAuth = async (req, res, next) => {
       return res.status(401).json({ error: "Authorization token missing or invalid" });
     }
 
-    const token = authHeader.split(' ')[1]; // Extract token after "Bearer"
+    const token = authHeader.split(' ')[1];
     const verifyToken = jwt.verify(token, "vamsi@1998");
 
     const { userId } = verifyToken;

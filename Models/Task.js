@@ -64,14 +64,15 @@ module.exports = (sequelize) => {
             [
               "pending",
               "verified",
-              "running",
-              "dispute",
+              "assigned",
+              "disputed",
               "completed",
               "rejected",
             ],
           ],
         },
       },
+      remarks: { type: DataTypes.TEXT },
       assignedBidderId: {
         type: DataTypes.STRING,
       },

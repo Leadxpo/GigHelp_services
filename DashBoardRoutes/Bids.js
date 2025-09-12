@@ -1,16 +1,14 @@
-const { sequelize } = require('../db');
-const bidModel = require('../Models/Bids')(sequelize);
-const userModel = require('../Models/SystemUser')(sequelize);
+const { sequelize } = require("../db");
+const bidModel = require("../Models/Bids")(sequelize);
+const userModel = require("../Models/SystemUser")(sequelize);
 const { Op } = require("sequelize");
-const express = require('express');
-const multer = require('multer'); 
+const express = require("express");
+const multer = require("multer");
 const router = express.Router();
-const path = require('path');
+const path = require("path");
 const { deleteImage } = require("../Midileware/deleteimages");
 const { successResponse, errorResponse } = require("../Midileware/response");
-const moment = require('moment'); 
-
-
+const moment = require("moment");
 
 // Image configuration
 const imageconfig = multer.diskStorage({
@@ -19,16 +17,15 @@ const imageconfig = multer.diskStorage({
   },
   filename: (req, file, callback) => {
     callback(null, Date.now() + path.extname(file.originalname));
-  }
+  },
 });
 
 const upload = multer({
   storage: imageconfig,
-  limits: { fileSize: 1000000000 }
+  limits: { fileSize: 1000000000 },
 });
 
-
-router.post("/create", upload.single('file'), async (req, res) => {
+router.post("/create", upload.single("file"), async (req, res) => {
   try {
     const {
       amount,
@@ -49,11 +46,11 @@ router.post("/create", upload.single('file'), async (req, res) => {
 
     // Extract number of days from "3 Days Left"
     let dateOfBids = null;
-    if (typeof daysLeft === 'string') {
+    if (typeof daysLeft === "string") {
       const match = daysLeft.match(/(\d+)\s*Days\s*Left/i);
       if (match) {
         const days = parseInt(match[1]);
-        dateOfBids = moment().subtract(days, 'days').format("YYYY-MM-DD");
+        dateOfBids = moment().subtract(days, "days").format("YYYY-MM-DD");
       }
     }
 
@@ -69,7 +66,7 @@ router.post("/create", upload.single('file'), async (req, res) => {
       taskDescription,
       bidOfAmount,
       dateOfBids,
-      status: 'pending',
+      status: "pending",
     });
 
     return successResponse(res, "Bid created successfully", bid);
@@ -79,11 +76,12 @@ router.post("/create", upload.single('file'), async (req, res) => {
   }
 });
 
-
 // Update Bid
 router.patch("/update/:id", async (req, res) => {
   try {
-    const bid = await bidModel.update(req.body, { where: { id: req.params.id } });
+    const bid = await bidModel.update(req.body, {
+      where: { id: req.params.id },
+    });
     return successResponse(res, "Bid updated successfully", bid);
   } catch (error) {
     return errorResponse(res, "Error updating bid", error);
@@ -103,16 +101,19 @@ router.delete("/delete/:id", async (req, res) => {
 // Get Bid by User ID
 router.get("/user/:userId", async (req, res) => {
   try {
-    const bids = await bidModel.findAll({ where: { userId: req.params.userId } });
+    const bids = await bidModel.findAll({
+      where: { userId: req.params.userId },
+    });
     return successResponse(res, "Bids fetched successfully", bids);
   } catch (error) {
     return errorResponse(res, "Error fetching bids", error);
   }
 });
 
-router.get("/get-by-bidid", async (req, res) => {
+// Backend: use params instead of query
+router.get("/get-by-bidid/:bidId", async (req, res) => {
   try {
-    const { bidId } = req.query;
+    const { bidId } = req.params;
 
     if (!bidId) {
       return res.status(400).json({ success: false, message: "Missing bidId" });
@@ -135,7 +136,6 @@ router.get("/get-by-bidid", async (req, res) => {
   }
 });
 
-
 // Get All Bids
 router.get("/get-all-bids", async (req, res) => {
   try {
@@ -145,7 +145,6 @@ router.get("/get-all-bids", async (req, res) => {
     return errorResponse(res, "Error fetching all bids", error);
   }
 });
-
 
 router.get("/get-all-bids-by-user", async (req, res) => {
   try {
@@ -184,12 +183,11 @@ router.get("/get-all-bids-by-task", async (req, res) => {
   }
 });
 
-
 // Search by Bid Name
 router.get("/search", async (req, res) => {
   try {
     const bids = await bidModel.findAll({
-      where: { bidName: { [Op.like]: `%${req.query.name}%` } }
+      where: { bidName: { [Op.like]: `%${req.query.name}%` } },
     });
     return successResponse(res, "Search results", bids);
   } catch (error) {

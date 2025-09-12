@@ -141,7 +141,9 @@ router.get("/login-user-details", SystemUserAuth, async (req, res) => {
 // Profile Route
 router.get("/get-user", SystemUserAuth, async (req, res) => {
   try {
-    const { userId } = req.user; // Extract userId from req.user
+    const { userId } = req.user;
+
+    console.log(req,"sss")
 
     const user = UserModel.findOne({ where: { userId } });
 
@@ -155,6 +157,31 @@ router.get("/get-user", SystemUserAuth, async (req, res) => {
   }
 });
 
+// GET user by bid-user-id with authentication
+router.get("/get-user-by-bidId", SystemUserAuth, async (req, res) => {
+  try {
+    const authUserId = req.user.userId; // Authenticated user
+    const { userId } = req.query.params;       // The user we want to fetch
+
+    console.log(req.query,"dsdsd")
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Missing userId" });
+    }
+
+    const user = await UserModel.findOne({ where: { userId } });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    return successResponse(res, "User profile fetched successfully", user);
+  } catch (error) {
+    return errorResponse(res, "Failed to fetch profile", error);
+  }
+});
+
+
 // Get All Profiles
 router.get("/all-users", SystemUserAuth, async (req, res) => {
   try {
@@ -164,6 +191,75 @@ router.get("/all-users", SystemUserAuth, async (req, res) => {
     return errorResponse(res, "Failed to fetch users", error);
   }
 });
+
+// router.put(
+//   "/user-update/:userId",
+//   SystemUserAuth,
+//   upload.fields([
+//     { name: "profilePic", maxCount: 10 },
+//     { name: "identityProof", maxCount: 10 },
+//   ]),
+//   async (req, res) => {
+//     try {
+//       const { userId } = req.params;
+//       const user = await UserModel.findOne({ where: { userId } });
+
+//       if (!user) {
+//         return res
+//           .status(404)
+//           .json({ success: false, message: "User not found" });
+//       }
+
+//       // if (req.files?.profilePic?.[0]) {
+//       //   if (user.profilePic) await deleteImage(user.profilePic);
+//       //   req.body.profilePic = req.files.profilePic[0].filename;
+//       // }
+
+//       // if (req.files?.identityProof?.length > 0) {
+//       //   // Delete old identity proofs if needed
+//       //   if (user.identityProof) {
+//       //     const oldProofs = Array.isArray(user.identityProof)
+//       //       ? user.identityProof
+//       //       : [user.identityProof];
+//       //     for (const proof of oldProofs) {
+//       //       await deleteImage(proof);
+//       //     }
+//       //   }
+
+//       //   // Save multiple filenames as an array
+//       //   req.body.identityProof = req.files.identityProof.map(
+//       //     (file) => file.filename
+//       //   );
+//       // }
+
+//       console.log(req.body, "requesttttttt");
+
+//       const fieldsToUpdate = {
+//         // userName: req.body.userName,
+//         // email: req.body.email,
+//         // phoneNumber: req.body.phoneNumber,
+//         // address: req.body.address,
+//         // profilePic: req.body.profilePic,
+//         // identityProof: req.body.identityProof,
+//         // accountHolder: req.body.accountHolder,
+//         // accountNumber: req.body.accountNumber,
+//         // bankName: req.body.bankName,
+//         // ifscCode: req.body.ifscCode,
+//         status: req.body.status,
+//         remarks: req.body.remarks,
+//       };
+
+//       await user.update(fieldsToUpdate);
+
+//       return successResponse(res, "User profile updated successfully", user);
+//     } catch (error) {
+//       console.error("Profile Update Error:", error);
+//       return errorResponse(res, "Failed to update user profile", error);
+//     }
+//   }
+// );
+
+// Logout
 
 router.put(
   "/user-update/:userId",
@@ -183,44 +279,63 @@ router.put(
           .json({ success: false, message: "User not found" });
       }
 
-      // if (req.files?.profilePic?.[0]) {
-      //   if (user.profilePic) await deleteImage(user.profilePic);
-      //   req.body.profilePic = req.files.profilePic[0].filename;
-      // }
+      // Prepare update object
+      const fieldsToUpdate = {};
 
-      // if (req.files?.identityProof?.length > 0) {
-      //   // Delete old identity proofs if needed
-      //   if (user.identityProof) {
-      //     const oldProofs = Array.isArray(user.identityProof)
-      //       ? user.identityProof
-      //       : [user.identityProof];
-      //     for (const proof of oldProofs) {
-      //       await deleteImage(proof);
-      //     }
-      //   }
+      // Handle profilePic
+      if (req.files?.profilePic?.length > 0) {
+        if (user.profilePic) await deleteImage(user.profilePic);
+        fieldsToUpdate.profilePic = req.files.profilePic[0].filename;
+      }
 
-      //   // Save multiple filenames as an array
-      //   req.body.identityProof = req.files.identityProof.map(
-      //     (file) => file.filename
-      //   );
-      // }
+      // Handle identityProof (existing + new)
+      let newProofs = [];
 
-      console.log(req.body, "requesttttttt");
+      // Parse incoming identityProof if it's a stringified array
+      if (req.body.identityProof) {
+        if (typeof req.body.identityProof === "string") {
+          try {
+            const parsed = JSON.parse(req.body.identityProof);
+            if (Array.isArray(parsed)) newProofs = parsed;
+          } catch (e) {
+            newProofs = [req.body.identityProof];
+          }
+        } else if (Array.isArray(req.body.identityProof)) {
+          newProofs = req.body.identityProof;
+        }
+      }
 
-      const fieldsToUpdate = {
-        // userName: req.body.userName,
-        // email: req.body.email,
-        // phoneNumber: req.body.phoneNumber,
-        // address: req.body.address,
-        // profilePic: req.body.profilePic,
-        // identityProof: req.body.identityProof,
-        // accountHolder: req.body.accountHolder,
-        // accountNumber: req.body.accountNumber,
-        // bankName: req.body.bankName,
-        // ifscCode: req.body.ifscCode,
-        status: req.body.status,
-        remarks: req.body.remarks,
-      };
+      // Add newly uploaded identityProof files
+      if (req.files?.identityProof?.length > 0) {
+        const uploadedProofs = req.files.identityProof.map(
+          (file) => file.filename
+        );
+        newProofs = [...newProofs, ...uploadedProofs];
+      }
+
+      if (newProofs.length > 0) {
+        fieldsToUpdate.identityProof = newProofs;
+      }
+
+      // Optional form fields
+      const optionalFields = [
+        "userName",
+        "email",
+        "phoneNumber",
+        "address",
+        "accountHolder",
+        "accountNumber",
+        "bankName",
+        "ifscCode",
+        "status",
+        "remarks",
+      ];
+
+      optionalFields.forEach((key) => {
+        if (req.body[key] !== undefined) {
+          fieldsToUpdate[key] = req.body[key];
+        }
+      });
 
       await user.update(fieldsToUpdate);
 
@@ -232,7 +347,7 @@ router.put(
   }
 );
 
-// Logout
+
 router.post("/logout", (req, res) => {
   res.cookie("token", null, { expires: new Date(Date.now()) });
   return successResponse(res, "Logged out successfully");

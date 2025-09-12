@@ -62,7 +62,7 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: "pending",
         validate: {
-          isIn: [["pending", "approval", "completed", "rejected", "running"]],
+          isIn: [["pending", "approval", "completed","disputed", "rejected", "approved"]],
         },
       },
       createdAt: {

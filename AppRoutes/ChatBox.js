@@ -66,14 +66,21 @@ router.post('/send', upload.single("file"), async (req, res) => {
 router.get('/conversation/:receiverId', async (req, res) => {
     console.log("aaaa",req.query);
     console.log("aaaaa u",req.query.userId);
+    console.log("task id",req.query.taskId);
     console.log("rrrrr",req.params.receiverId);
   try {
     const senderId = req.query.userId;
+    const taskId = req.query.taskId;
     const receiverId = parseInt(req.params.receiverId);
     console.log("llllllll>",receiverId)
 
+     if (!senderId || !receiverId || !taskId) {
+      return errorResponse(res, "senderId, receiverId and taskId are required");
+    }
+
     const messages = await ChatModel.findAll({
         where: {
+          taskId: taskId,
           [Op.or]: [
             { senderId: senderId, receiverId: receiverId },
             { senderId: receiverId, receiverId: senderId }

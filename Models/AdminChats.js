@@ -1,40 +1,46 @@
 const { DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
-  const ChatMessage = sequelize.define(
-    "ChatMessage",
+  const AdminChats = sequelize.define(
+    "AdminChats",
     {
-      messageId: {
+      chatId: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      senderId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-      },
-
       taskId: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      receiverId: {
+      bidId: {
         type: DataTypes.INTEGER,
         allowNull: true,
+      },
+      disputeId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // null if not a dispute
+      },
+      senderId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      receiverId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      senderType: {
+        type: DataTypes.ENUM("admin", "owner", "bidder"),
+        allowNull: false,
+      },
+      receiverType: {
+        type: DataTypes.ENUM("admin", "owner", "bidder"),
+        allowNull: false,
       },
       message: {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      senderType: {
-        type: DataTypes.ENUM("system", "user"),
-        allowNull: true,
-      },
-      receiverType: {
-        type: DataTypes.ENUM("system", "user"),
-        allowNull: true,
-      },
-
       fileUrl: {
         type: DataTypes.STRING,
         allowNull: true,
@@ -49,10 +55,10 @@ module.exports = (sequelize) => {
       },
     },
     {
-      tableName: "ChatMessages",
+      tableName: "AdminChats",
       timestamps: false,
     }
   );
 
-  return ChatMessage;
+  return AdminChats;
 };
