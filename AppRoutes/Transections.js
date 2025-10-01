@@ -1,18 +1,74 @@
-const { sequelize } = require('../db');
-const transactionModel = require('../Models/Transections')(sequelize);
-const userModel = require('../Models/SystemUser')(sequelize);
+const { sequelize } = require("../db");
+const transactionModel = require("../Models/Transections")(sequelize);
+const taskModel = require("../Models/Task")(sequelize);
+const requestModel = require("../Models/Requests")(sequelize);
+const bidModel = require("../Models/Bids")(sequelize);
+const uModel = require("../Models/Users")(sequelize);
+const userModel = require("../Models/SystemUser")(sequelize);
 const { Op } = require("sequelize");
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 const { successResponse, errorResponse } = require("../Midileware/response");
 
 // Create Transaction
 router.post("/create", async (req, res) => {
   try {
-    const transaction = await transactionModel.create(req.body);
-    return successResponse(res, "Transaction created successfully", transaction);
+    const {
+      userId,
+      taskId,
+      bidId,
+      amount,
+      typeOfPayment,
+      paymentMethod,
+      payerRole,
+    } = req.body;
+
+    console.log("Received transaction data:", req.body); // ✅ Debug line
+
+    // const payerRole = bidId ? "admin" : "taskOwner";
+
+    const transaction = await transactionModel.create({
+      userId,
+      taskId,
+      bidId: bidId || null,
+      amount,
+      typeOfPayment,
+      paymentMethod: paymentMethod || null,
+      status: "pending",
+      payerRole,
+    });
+    const request = await requestModel.findOne({ where: { taskId } });
+    if (request) {
+      const updatedPaid = (request.paidAmount || 0) + amount;
+      const updatedBalance = (request.amount || 0) - updatedPaid;
+
+      await request.update({
+        paidAmount: updatedPaid,
+        balanceAmount: updatedBalance,
+        status: "paid",
+      });
+    }
+
+    const task = await taskModel.findByPk(taskId);
+    const bid = await bidModel.findByPk(bidId);
+
+    if (
+      task.status === "paymentRequested" &&
+      bid.status === "paymentRequested"
+    ) {
+      await task.update({ status: "completed" });
+      await bid.update({ status: "completed" });
+    }
+
+    return successResponse(res, "Payment completed successfully", {
+      transaction,
+      request,
+      task,
+      bid,
+    });
   } catch (error) {
-    return errorResponse(res, "Error creating transaction", error);
+    console.error("Transaction creation error:", error);
+    return errorResponse(res, "Error creating transaction", error.message);
   }
 });
 
@@ -20,8 +76,14 @@ router.post("/create", async (req, res) => {
 router.patch("/update/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedTransaction = await transactionModel.update(req.body, { where: { id } });
-    return successResponse(res, "Transaction updated successfully", updatedTransaction);
+    const updatedTransaction = await transactionModel.update(req.body, {
+      where: { id },
+    });
+    return successResponse(
+      res,
+      "Transaction updated successfully",
+      updatedTransaction
+    );
   } catch (error) {
     return errorResponse(res, "Error updating transaction", error);
   }
@@ -42,8 +104,15 @@ router.delete("/delete/:id", async (req, res) => {
 router.get("/getbyId/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const transaction = await transactionModel.findOne({ where: { id }, include: userModel });
-    return successResponse(res, "Transaction fetched successfully", transaction);
+    const transaction = await transactionModel.findOne({
+      where: { id },
+      include: userModel,
+    });
+    return successResponse(
+      res,
+      "Transaction fetched successfully",
+      transaction
+    );
   } catch (error) {
     return errorResponse(res, "Error fetching transaction", error);
   }
@@ -53,7 +122,11 @@ router.get("/getbyId/:id", async (req, res) => {
 router.get("/getall", async (req, res) => {
   try {
     const transactions = await transactionModel.findAll({ include: userModel });
-    return successResponse(res, "All transactions fetched successfully", transactions);
+    return successResponse(
+      res,
+      "All transactions fetched successfully",
+      transactions
+    );
   } catch (error) {
     return errorResponse(res, "Error fetching transactions", error);
   }
@@ -66,8 +139,8 @@ router.get("/searchbyname", async (req, res) => {
     const transactions = await transactionModel.findAll({
       include: {
         model: userModel,
-        where: { firstName: { [Op.like]: `%${name}%` } }
-      }
+        where: { firstName: { [Op.like]: `%${name}%` } },
+      },
     });
     return successResponse(res, "Transactions found", transactions);
   } catch (error) {
@@ -79,7 +152,9 @@ router.get("/searchbyname", async (req, res) => {
 router.get("/count", async (req, res) => {
   try {
     const count = await transactionModel.count();
-    return successResponse(res, "Transaction count fetched successfully", { count });
+    return successResponse(res, "Transaction count fetched successfully", {
+      count,
+    });
   } catch (error) {
     return errorResponse(res, "Error counting transactions", error);
   }

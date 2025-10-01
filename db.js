@@ -14,6 +14,7 @@ const SubCategoriesModel = require("./Models/SubCategories");
 const ChatBoxModel = require("./Models/ChatBox");
 const NotificationModel = require("./Models/Notifications");
 const DisputeModel = require("./Models/Disputes");
+const ReviewModel = require("./Models/Reviews");
 const AdminChatModel = require("./Models/AdminChats"); // unified admin-taskOwner/bidder chat
 
 const sequelize = new Sequelize(
@@ -42,6 +43,7 @@ const SubCategories = SubCategoriesModel(sequelize);
 const ChatBox = ChatBoxModel(sequelize);
 const Notification = NotificationModel(sequelize);
 const Disputes = DisputeModel(sequelize);
+const Reviews = ReviewModel(sequelize);
 const AdminChats = AdminChatModel(sequelize);
 
 const createtable = () => {
@@ -62,6 +64,7 @@ const createtable = () => {
     ChatBox.sync({ alter: false });
     Notification.sync({ alter: false });
     Disputes.sync({ alter: true });
+    Reviews.sync({ alter: true });
     AdminChats.sync({ alter: true });
 
     console.log("table created");

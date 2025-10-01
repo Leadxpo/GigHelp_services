@@ -166,7 +166,8 @@ router.get("/get-all-bids-by-user", async (req, res) => {
 
 router.get("/get-all-bids-by-task", async (req, res) => {
   try {
-    const { taskId } = req.query;
+    console.log("Query paramsdddddd:", req.query);
+    const { taskId } = req.query.params;
 
     if (!taskId) {
       return errorResponse(res, "taskId is required");

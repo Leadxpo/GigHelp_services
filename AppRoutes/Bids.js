@@ -26,66 +26,6 @@ const upload = multer({
   limits: { fileSize: 1000000000 },
 });
 
-// router.post("/create", upload.array("biderDocument"), async (req, res) => {
-//   try {
-//     console.log("Received Body:", req.body);
-//     console.log("Received Files:", req.files);
-
-//     const {
-//       amount,
-//       description,
-//       Categories,
-//       SubCategory,
-//       targetedPostIn,
-//       daysLeft,
-//       userId,
-//       taskId,
-//       taskDescription,
-//       bidOfAmount,
-//       taskUserId,
-//       bidUserId,
-//     } = req.body;
-
-//     if (!Categories) {
-//       return errorResponse(res, "Categories is required");
-//     }
-
-//     // Extract number of days from "3 Days Left"
-//     let dateOfBids = null;
-//     if (typeof daysLeft === "string") {
-//       const match = daysLeft.match(/(\d+)\s*Days\s*Left/i);
-//       if (match) {
-//         const days = parseInt(match[1]);
-//         dateOfBids = moment().subtract(days, "days").format("YYYY-MM-DD");
-//       }
-//     }
-
-//     // Create a new bid
-//     const bid = await bidModel.create({
-//       amount,
-//       description,
-//       Categories,
-//       SubCategory,
-//       targetedPostIn,
-//       userId,
-//       taskId,
-//       taskDescription,
-//       bidOfAmount,
-//       dateOfBids,
-//       taskUserId,
-//       bidUserId,
-//       status: "pending",
-//     });
-
-//     return successResponse(res, "Bid created successfully", bid);
-//   } catch (error) {
-//     console.error(error);
-//     return errorResponse(res, "Error creating bid", error);
-//   }
-// });
-
-// Update Bid
-
 router.post("/create", upload.array("biderDocument"), async (req, res) => {
   try {
     console.log("Received Body:", req.body);
@@ -217,19 +157,6 @@ router.patch("/update/:BidId", upload.array("biderDocument"), async (req, res) =
   }
 });
 
-// router.patch("/update/:BidId", async (req, res) => {
-//   try {
-//     console.log(req.body,"abcd")
-//     const bid = await bidModel.update(req.body, {
-//       where: { BidId: req.params.BidId },
-//     });
-//     return successResponse(res, "Bid updated successfully", bid);
-//   } catch (error) {
-//     return errorResponse(res, "Error updating bid", error);
-//   }
-// });
-
-// Delete Bid
 router.delete("/delete/:BidId", async (req, res) => {
   try {
     await bidModel.destroy({ where: { BidId: req.params.BidId } });

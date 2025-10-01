@@ -257,7 +257,7 @@ router.get("/task-with-user", SystemUserAuth, async (req, res) => {
 // GET: /task-summary-by-user?userId=123
 router.get("/task-summary-by-user", SystemUserAuth, async (req, res) => {
   try {
-   const { userId } = req.query;
+   const { userId } = req.query.params;
     console.log("Query userId:", userId);
 
     if (!userId) {

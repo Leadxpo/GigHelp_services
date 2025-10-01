@@ -36,10 +36,9 @@ const DashboardChatBox = require('./DashBoardRoutes/ChatBox')
 const DashboardNotification = require('./DashBoardRoutes/Notification')
 const DashboardDisputes = require('./DashBoardRoutes/Disputes')
 const DashboardAdminChats = require('./DashBoardRoutes/AdminChats')
+const DashboardReviews = require('./DashBoardRoutes/Reviews')
 
 // const DashboardChatBox = require('./DashBoardRoutes/')
-
-
 
 // FOR APP
 
@@ -56,6 +55,7 @@ const AppNotification = require('./AppRoutes/Notification')
 const AppChatBox=require('./AppRoutes/ChatBox')
 const AppDisputes = require('./AppRoutes/Disputes')
 const AppAdminChats=require('./AppRoutes/AdminChats')
+const AppReviews=require('./AppRoutes/AppReviews')
 
 // const ChatBox = require('./Routes/ChatBox')
 
@@ -104,6 +104,7 @@ app.use('/categories', Categories)
 app.use('/subcategories', SubCategories)
 app.use('/chatbox', ChatBox)
 app.use('/notification', Notifications)
+// app.use('/reviews', Reviews)
 
 
 
@@ -122,6 +123,7 @@ app.use('/dashboard/chatbox', DashboardChatBox)
 app.use('/dashboard/notification', DashboardNotification)
 app.use('/dashboard/disputes', DashboardDisputes)
 app.use('/dashboard/adminchats', DashboardAdminChats)
+app.use('/dashboard/reviews', DashboardReviews)
 
 // app.use('/dashboard/chatbox', DashboardChatBox)
 
@@ -142,6 +144,7 @@ app.use('/1991/app/notification', AppNotification)
 app.use('/1991/app/chatbox', AppChatBox)
 app.use('/1991/app/dispute', AppDisputes)
 app.use('/1991/app/adminchats', AppAdminChats)
+app.use('/1991/app/reviews', AppReviews)
 
 
 const port = 3001 || process.env.appport
