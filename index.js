@@ -84,6 +84,7 @@ app.use('/images/category', express.static(path.join(__dirname, 'storage/categor
 app.use('/images/subcategory', express.static(path.join(__dirname, 'storage/subCategory')));
 app.use('/images/userdp', express.static(path.join(__dirname, 'storage/userdp')));
 app.use('/images/task', express.static(path.join(__dirname, 'storage/task')));
+app.use('/images/bids', express.static(path.join(__dirname, 'storage/bids')));
 app.use('/images/chat', express.static(path.join(__dirname, 'storage/chat')));
 app.use('/images/disputes', express.static(path.join(__dirname, 'storage/disputes')));
 

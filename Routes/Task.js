@@ -156,7 +156,7 @@ router.post("/get-task-by-user", userAuth, async (req, res) => {
 
 
 // Get All Tasks
-router.get("/get-all", userAuth, async (req, res) => {
+router.get("/get-all", async (req, res) => {
   try {
     const tasks = await TaskModel.findAll();
     return successResponse(res, "All tasks fetched successfully", tasks);

@@ -99,33 +99,99 @@ router.post("/create", upload.array("biderDocument"), async (req, res) => {
   }
 });
 
+// router.patch("/update/:BidId", upload.array("biderDocument"), async (req, res) => {
+//   try {
+//     console.log("Received Body:", req.body);
+//     console.log("Received Files:", req.files);
+
+//     const { bidOfAmount, description, existingDocuments,status } = req.body;
+
+//     // if (!bidOfAmount || !description) {
+//     //   return res.status(400).json({
+//     //     success: false,
+//     //     message: "bidOfAmount and description are required",
+//     //   });
+//     // }
+
+//     // Build new file paths from uploaded files
+//     const newFilePaths = req.files ? req.files.map((file) => file.filename) : [];
+
+//     // Handle existing documents (string or array)
+//     let allDocuments = [];
+//     if (existingDocuments) {
+//       allDocuments = Array.isArray(existingDocuments) ? existingDocuments : [existingDocuments];
+//     }
+
+//     // Merge old + new documents
+//     allDocuments = [...allDocuments, ...newFilePaths];
+
+//     // Update bid in database
+//     const [rowsUpdated] = await bidModel.update(
+//       {
+//         bidOfAmount,
+//         description,
+//         biderDocument: allDocuments,
+//         status,
+//       },
+//       { where: { BidId: req.params.BidId } }
+//     );
+
+//     if (rowsUpdated === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Bid not found",
+//       });
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Bid updated successfully",
+//     });
+//   } catch (error) {
+//     console.error("Error updating bid:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Error updating bid",
+//       error: error.message,
+//     });
+//   }
+// });
+
 router.patch("/update/:BidId", upload.array("biderDocument"), async (req, res) => {
   try {
     console.log("Received Body:", req.body);
     console.log("Received Files:", req.files);
 
-    const { bidOfAmount, description, existingDocuments,status } = req.body;
+    const { bidOfAmount, description, status } = req.body;
+    const { BidId } = req.params;
 
-    // if (!bidOfAmount || !description) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "bidOfAmount and description are required",
-    //   });
-    // }
-
-    // Build new file paths from uploaded files
-    const newFilePaths = req.files ? req.files.map((file) => file.filename) : [];
-
-    // Handle existing documents (string or array)
-    let allDocuments = [];
-    if (existingDocuments) {
-      allDocuments = Array.isArray(existingDocuments) ? existingDocuments : [existingDocuments];
+    // 1️⃣ Find the existing bid first
+    const existingBid = await bidModel.findOne({ where: { BidId } });
+    if (!existingBid) {
+      return res.status(404).json({
+        success: false,
+        message: "Bid not found",
+      });
     }
 
-    // Merge old + new documents
+    // 2️⃣ Extract existing documents from DB
+    let allDocuments = [];
+    if (existingBid.biderDocument && Array.isArray(existingBid.biderDocument)) {
+      allDocuments = [...existingBid.biderDocument];
+    } else if (existingBid.biderDocument) {
+      // in case it's stored as a string (e.g. comma-separated or JSON string)
+      try {
+        allDocuments = JSON.parse(existingBid.biderDocument);
+      } catch {
+        allDocuments = [existingBid.biderDocument];
+      }
+    }
+
+    // 3️⃣ Add new uploaded files
+    const newFilePaths = req.files ? req.files.map((file) => file.filename) : [];
     allDocuments = [...allDocuments, ...newFilePaths];
 
-    // Update bid in database
+    // 4️⃣ Update the bid
     const [rowsUpdated] = await bidModel.update(
       {
         bidOfAmount,
@@ -133,7 +199,7 @@ router.patch("/update/:BidId", upload.array("biderDocument"), async (req, res) =
         biderDocument: allDocuments,
         status,
       },
-      { where: { BidId: req.params.BidId } }
+      { where: { BidId } }
     );
 
     if (rowsUpdated === 0) {
@@ -146,6 +212,7 @@ router.patch("/update/:BidId", upload.array("biderDocument"), async (req, res) =
     return res.status(200).json({
       success: true,
       message: "Bid updated successfully",
+      updatedDocuments: allDocuments,
     });
   } catch (error) {
     console.error("Error updating bid:", error);
@@ -156,6 +223,7 @@ router.patch("/update/:BidId", upload.array("biderDocument"), async (req, res) =
     });
   }
 });
+
 
 router.delete("/delete/:BidId", async (req, res) => {
   try {

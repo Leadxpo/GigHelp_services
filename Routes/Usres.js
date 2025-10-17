@@ -32,41 +32,104 @@ const upload = multer({
   limits: { fileSize: 1000000000 },
 });
 
+// router.post("/register", upload.single("profilePic"), async (req, res) => {
+//   try {
+//     console.log("Received Data:", req.body);
+
+//     if (req.body.password) {
+//       req.body.password = await bcrypt.hash(req.body.password, 10);
+//     }
+
+//     if (req.file) {
+//       req.body.profilePic = req.file.filename;
+//     }
+
+//     // Parse JSON fields if coming as strings
+//     if (typeof req.body.skills === "string") {
+//       req.body.skills = JSON.parse(req.body.skills);
+//     }
+//     if (typeof req.body.experience === "string") {
+//       req.body.experience = JSON.parse(req.body.experience);
+//     }
+
+//     const user = await UserModel.create(req.body);
+//     return successResponse(res, "User added successfully", user);
+//   } catch (error) {
+//     console.error("Error Saving User:", error);
+//     return errorResponse(res, "Error saving user", error);
+//   }
+// });
+
+// Login Route
+
 router.post("/register", upload.single("profilePic"), async (req, res) => {
   try {
-    console.log("Received Data:", req.body);
+    const { email, userName, phoneNumber, password } = req.body;
 
-    if (req.body.password) {
-      req.body.password = await bcrypt.hash(req.body.password, 10);
+    // 1️⃣ Validate required fields
+    if (!email || !userName || !phoneNumber || !password) {
+      return errorResponse(res, "Please fill all required fields");
     }
 
+    // 3️⃣ Check for duplicate entries in MongoDB
+    const existingUser = await UserModel.findOne({
+      where: {
+        [Op.or]: [{ email }, { userName }, { phoneNumber }],
+      },
+    });
+    console.log(existingUser, "existing user");
+
+    if (existingUser) {
+      let errors = {};
+
+      if (existingUser.email === email) {
+        errors.email = "Email already exists";
+      }
+      if (existingUser.userName === userName) {
+        errors.userName = "User Name already exists";
+      }
+      if (existingUser.phoneNumber === phoneNumber) {
+        errors.phoneNumber = "Phone number already exists";
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: "Duplicate fields found",
+        errors, // structured errors for frontend
+      });
+    }
+
+    // 4️⃣ Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 5️⃣ Handle file upload
+    let profilePic = null;
     if (req.file) {
-      req.body.profilePic = req.file.filename;
+      profilePic = req.file.filename;
     }
 
-    // Parse JSON fields if coming as strings
-    if (typeof req.body.skills === "string") {
-      req.body.skills = JSON.parse(req.body.skills);
-    }
-    if (typeof req.body.experience === "string") {
-      req.body.experience = JSON.parse(req.body.experience);
-    }
+    // 6️⃣ Create new user
+    const newUser = new UserModel({
+      ...req.body,
+      password: hashedPassword,
+      profilePic,
+    });
 
-    const user = await UserModel.create(req.body);
-    return successResponse(res, "User added successfully", user);
+    await newUser.save();
+
+    return successResponse(res, "User registered successfully", newUser);
   } catch (error) {
     console.error("Error Saving User:", error);
     return errorResponse(res, "Error saving user", error);
   }
 });
 
-// Login Route
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { userName, password } = req.body;
 
     // Find user by email
-    const user = await UserModel.findOne({ where: { email } });
+    const user = await UserModel.findOne({ where: { userName } });
 
     if (!user) {
       return errorResponse(res, "User not found");
