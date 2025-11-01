@@ -126,7 +126,7 @@ router.patch("/update-task", upload.array("documents"), async (req, res) => {
     console.log("Received Body:", req.body);
     console.log("Received Files:", req.files);
 
-    const { taskId, existingDocuments, ...restBody } = req.body;
+    const { taskId, ...restBody } = req.body;
 
     if (!taskId) {
       return res.status(400).json({
@@ -135,25 +135,25 @@ router.patch("/update-task", upload.array("documents"), async (req, res) => {
       });
     }
 
-    // Handle new uploads
-    const newFilePaths = req.files?.map((file) => file.filename) || [];
+    const existingTask = await TaskModel.findOne({ where: { taskId } });
 
-    // Handle old documents
-    let allDocuments = [];
-    if (existingDocuments) {
-      allDocuments = Array.isArray(existingDocuments)
-        ? existingDocuments
-        : [existingDocuments];
+    if (!existingTask) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
     }
 
-    // Merge old + new docs
-    allDocuments = [...allDocuments, ...newFilePaths];
+    const existingDocuments = existingTask.document || [];
 
-    // Update task
+    const newFilePaths = req.files?.map((file) => file.filename) || [];
+
+    const allDocuments = [...existingDocuments, ...newFilePaths];
+
     const [rowsUpdated] = await TaskModel.update(
       {
-        ...restBody, // only other fields (not taskId, not existingDocuments)
-        document: allDocuments, // store merged documents
+        ...restBody, // other fields
+        document: allDocuments,
       },
       { where: { taskId } }
     );
@@ -161,11 +161,11 @@ router.patch("/update-task", upload.array("documents"), async (req, res) => {
     if (rowsUpdated === 0) {
       return res.status(404).json({
         success: false,
-        message: "Task not found",
+        message: "Task not updated",
       });
     }
 
-    // Fetch updated task
+    // 6️⃣ Fetch updated task
     const updatedTask = await TaskModel.findOne({ where: { taskId } });
 
     return res.status(200).json({
@@ -182,6 +182,68 @@ router.patch("/update-task", upload.array("documents"), async (req, res) => {
     });
   }
 });
+
+// router.patch("/update-task", upload.array("documents"), async (req, res) => {
+//   try {
+//     console.log("Received Body:", req.body);
+//     console.log("Received Files:", req.files);
+
+//     const { taskId, existingDocuments, ...restBody } = req.body;
+
+//     if (!taskId) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "taskId is required",
+//       });
+//     }
+
+//     // Handle new uploads
+//     const newFilePaths = req.files?.map((file) => file.filename) || [];
+
+//     // Handle old documents
+//     let allDocuments = [];
+//     if (existingDocuments) {
+//       allDocuments = Array.isArray(existingDocuments)
+//         ? existingDocuments
+//         : [existingDocuments];
+//     }
+
+//     // Merge old + new docs
+//     allDocuments = [...allDocuments, ...newFilePaths];
+
+//     // Update task
+//     const [rowsUpdated] = await TaskModel.update(
+//       {
+//         ...restBody, // only other fields (not taskId, not existingDocuments)
+//         document: allDocuments, // store merged documents
+//       },
+//       { where: { taskId } }
+//     );
+
+//     if (rowsUpdated === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Task not found",
+//       });
+//     }
+
+//     // Fetch updated task
+//     const updatedTask = await TaskModel.findOne({ where: { taskId } });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Task updated successfully",
+//       task: updatedTask,
+//     });
+//   } catch (error) {
+//     console.error("Error updating task:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Error updating task",
+//       error: error.message,
+//     });
+//   }
+// });
 
 // Delete Task
 router.delete("/delete-task", async (req, res) => {
