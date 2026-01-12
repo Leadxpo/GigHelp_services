@@ -87,12 +87,79 @@ router.post("/create", upload.array('biderDocument' ,10), async (req, res) => {
 
 
 // Update Bid
-router.put("/update/:BidId", async (req, res) => {
+// router.put("/update/:BidId", async (req, res) => {
+//   try {
+//     const bid = await bidModel.update(req.body, { where: { BidId: req.params.BidId } });
+//     return successResponse(res, "Bid updated successfully", bid);
+//   } catch (error) {
+//     return errorResponse(res, "Error updating bid", error);
+//   }
+// });
+
+router.patch("/update/:BidId", upload.array("biderDocument"), async (req, res) => {
   try {
-    const bid = await bidModel.update(req.body, { where: { BidId: req.params.BidId } });
-    return successResponse(res, "Bid updated successfully", bid);
+    console.log("Received Body:", req.body);
+    console.log("Received Files:", req.files);
+
+    const { bidOfAmount, description, status } = req.body;
+    const { BidId } = req.params;
+
+    // 1️⃣ Find the existing bid first
+    const existingBid = await bidModel.findOne({ where: { BidId } });
+    if (!existingBid) {
+      return res.status(404).json({
+        success: false,
+        message: "Bid not found",
+      });
+    }
+
+    // 2️⃣ Extract existing documents from DB
+    let allDocuments = [];
+    if (existingBid.biderDocument && Array.isArray(existingBid.biderDocument)) {
+      allDocuments = [...existingBid.biderDocument];
+    } else if (existingBid.biderDocument) {
+      // in case it's stored as a string (e.g. comma-separated or JSON string)
+      try {
+        allDocuments = JSON.parse(existingBid.biderDocument);
+      } catch {
+        allDocuments = [existingBid.biderDocument];
+      }
+    }
+
+    // 3️⃣ Add new uploaded files
+    const newFilePaths = req.files ? req.files.map((file) => file.filename) : [];
+    allDocuments = [...allDocuments, ...newFilePaths];
+
+    // 4️⃣ Update the bid
+    const [rowsUpdated] = await bidModel.update(
+      {
+        bidOfAmount,
+        description,
+        biderDocument: allDocuments,
+        status,
+      },
+      { where: { BidId } }
+    );
+
+    if (rowsUpdated === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Bid not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Bid updated successfully",
+      updatedDocuments: allDocuments,
+    });
   } catch (error) {
-    return errorResponse(res, "Error updating bid", error);
+    console.error("Error updating bid:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error updating bid",
+      error: error.message,
+    });
   }
 });
 

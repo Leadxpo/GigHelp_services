@@ -28,6 +28,65 @@ const upload = multer({
   limits: { fileSize: 1000000000 }
 });
 
+// router.post('/send', userAuth, upload.single("file"), async (req, res) => {
+//   try {
+//     const { senderId, receiverId, taskId, message } = req.body;
+//     const file = req.file;
+
+//     if (!receiverId || (!message && !file)) {
+//       return errorResponse(res, "receiverId and either message or file is required");
+//     }
+
+//     const fileUrl = file ? `http://localhost:3001/storege/userdp/${file.filename}` : null;
+//     const fileType = file ? file.mimetype : null;
+
+//     const chat = await ChatModel.create({
+//       senderId,
+//       receiverId,
+//       taskId,
+//       message,
+//       fileUrl,
+//       fileType,
+//     });
+
+//     return successResponse(res, "Message sent", chat);
+//   } catch (error) {
+//     return errorResponse(res, "Failed to send message", error);
+//   }
+// });
+
+
+
+
+
+// // Get conversation between two users
+
+// router.get('/conversation/:receiverId', userAuth, async (req, res) => {
+//     console.log("kkkk",req.params);
+//     console.log("kkkk u",req.user.userId);
+//   try {
+//     const senderId = req.user.userId;
+//     const receiverId = parseInt(req.params.receiverId);
+//     console.log("llllllll>",receiverId)
+
+//     const messages = await ChatModel.findAll({
+//         where: {
+//           [Op.or]: [
+//             { senderId: senderId, receiverId: receiverId },
+//             { senderId: receiverId, receiverId: senderId }
+//           ]
+//         },
+//         order: [['timestamp', 'ASC']]
+//       });
+      
+//     console.log("massage",messages)
+
+//     return successResponse(res, "Conversation fetched", messages);
+//   } catch (error) {
+//     return errorResponse(res, "Failed to fetch messages", error);
+//   }
+// });
+
 router.post('/send', userAuth, upload.single("file"), async (req, res) => {
   try {
     const { senderId, receiverId, taskId, message } = req.body;
@@ -37,7 +96,8 @@ router.post('/send', userAuth, upload.single("file"), async (req, res) => {
       return errorResponse(res, "receiverId and either message or file is required");
     }
 
-    const fileUrl = file ? `http://localhost:3001/storege/userdp/${file.filename}` : null;
+    // Instead of storing full URL, store just the file name and mimetype
+    const fileName = file ? file.filename : null;
     const fileType = file ? file.mimetype : null;
 
     const chat = await ChatModel.create({
@@ -45,7 +105,7 @@ router.post('/send', userAuth, upload.single("file"), async (req, res) => {
       receiverId,
       taskId,
       message,
-      fileUrl,
+      fileUrl: fileName, // Store only filename
       fileType,
     });
 
@@ -59,18 +119,27 @@ router.post('/send', userAuth, upload.single("file"), async (req, res) => {
 
 
 
+
 // Get conversation between two users
 
 router.get('/conversation/:receiverId', userAuth, async (req, res) => {
-    console.log("kkkk",req.params);
-    console.log("kkkk u",req.user.userId);
+    console.log("aaaa",req.query);
+    console.log("aaaaa u",req.query.userId);
+    console.log("task id",req.query.taskId);
+    console.log("rrrrr",req.params.receiverId);
   try {
-    const senderId = req.user.userId;
+    const senderId = req.query.userId;
+    const taskId = req.query.taskId;
     const receiverId = parseInt(req.params.receiverId);
     console.log("llllllll>",receiverId)
 
+     if (!senderId || !receiverId || !taskId) {
+      return errorResponse(res, "senderId, receiverId and taskId are required");
+    }
+
     const messages = await ChatModel.findAll({
         where: {
+          taskId: taskId,
           [Op.or]: [
             { senderId: senderId, receiverId: receiverId },
             { senderId: receiverId, receiverId: senderId }
@@ -86,6 +155,5 @@ router.get('/conversation/:receiverId', userAuth, async (req, res) => {
     return errorResponse(res, "Failed to fetch messages", error);
   }
 });
-
 
 module.exports = router;

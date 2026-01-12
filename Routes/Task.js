@@ -1,7 +1,7 @@
 const express = require('express');
 const { sequelize } = require('../db');
 const TaskModel = require('../Models/Task')(sequelize);
-const UserModel = require('../Models/SystemUser')(sequelize);
+const UserModel = require('../Models/Users')(sequelize);
 const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../Midileware/response");
 const { userAuth } = require("../Midileware/Auth");
@@ -37,17 +37,46 @@ const upload = multer({
 // Set up multer for handling form data
 
 router.post("/create", userAuth, upload.array("document"), async (req, res) => {
+  // try {
+  //   console.log("Received Body:", req.body);
+  //   console.log("Received Files:", req.files);
+
+  //   // Get just the file names instead of full paths
+  //   const fileNames = req.files.map((file) => file.filename);
+
+  //   // Create task with filenames in 'document'
+  //   const taskData = await TaskModel.create({
+  //     ...req.body,
+  //     document: fileNames, // Store only the file names here
+  //   });
+
+  //   return res.status(201).json({
+  //     success: true,
+  //     message: "Task created successfully",
+  //     data: taskData,
+  //   });
+  // } catch (error) {
+  //   console.error("Error creating task:", error);
+  //   return res.status(500).json({
+  //     success: false,
+  //     message: "Error creating task",
+  //     error: error.message,
+  //   });
+  // }
   try {
     console.log("Received Body:", req.body);
     console.log("Received Files:", req.files);
 
-    // Get just the file names instead of full paths
-    const fileNames = req.files.map((file) => file.filename);
+    // build full file URLs
+    const filePaths = req.files.map(
+      // (file) => `http://localhost:3001/storage/task/${file.filename}`
+      (file) => `${file.filename}`
+    );
 
-    // Create task with filenames in 'document'
+    // create task with full URLs in 'document'
     const taskData = await TaskModel.create({
       ...req.body,
-      document: fileNames, // Store only the file names here
+      document: filePaths,
     });
 
     return res.status(201).json({
@@ -60,6 +89,70 @@ router.post("/create", userAuth, upload.array("document"), async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error creating task",
+      error: error.message,
+    });
+  }
+});
+
+router.patch("/update-task", userAuth, upload.array("documents"), async (req, res) => {
+  try {
+    console.log("Received Body:", req.body);
+    console.log("Received Files:", req.files);
+
+    const { taskId, ...restBody } = req.body;
+
+    if (!taskId) {
+      return res.status(400).json({
+        success: false,
+        message: "taskId is required",
+      });
+    }
+
+    const existingTask = await TaskModel.findOne({ where: { taskId } });
+
+    if (!existingTask) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    // const existingDocuments = existingTask.document || [];
+    const existingDocuments = req.body.existingDocuments || [];
+    console.log(existingDocuments,"eeeee")
+
+    const newFilePaths = req.files?.map((file) => file.filename) || [];
+
+    const allDocuments = [...existingDocuments, ...newFilePaths];
+
+    const [rowsUpdated] = await TaskModel.update(
+      {
+        ...restBody, // other fields
+        document: allDocuments,
+      },
+      { where: { taskId } }
+    );
+
+    if (rowsUpdated === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not updated",
+      });
+    }
+
+    // 6️⃣ Fetch updated task
+    const updatedTask = await TaskModel.findOne({ where: { taskId } });
+
+    return res.status(200).json({
+      success: true,
+      message: "Task updated successfully",
+      task: updatedTask,
+    });
+  } catch (error) {
+    console.error("Error updating task:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error updating task",
       error: error.message,
     });
   }
@@ -99,9 +192,37 @@ router.delete("/delete/:taskId", userAuth, async (req, res) => {
   }
 });
 
-router.get("/get-task/:taskId", userAuth, async (req, res) => {
+// router.get("/get-task/:taskId", userAuth, async (req, res) => {
+//   try {
+//     const { taskId } = req.params;
+
+//     if (!taskId) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "taskId is required",
+//       });
+//     }
+
+//     const task = await TaskModel.findOne({ where: { taskId: parseInt(taskId) } });
+
+//     if (!task) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Task not found",
+//       });
+//     }
+
+//     return successResponse(res, "Task fetched successfully", task);
+//   } catch (error) {
+//     console.error("Error fetching task:", error);
+//     return errorResponse(res, "Error fetching task", error);
+//   }
+// });
+
+router.get("/get-task", userAuth,  async (req, res) => {
   try {
-    const { taskId } = req.params;
+    console.log(req.query, "bbbbbb");
+    const { taskId } = req.query;
 
     if (!taskId) {
       return res.status(400).json({
@@ -110,7 +231,11 @@ router.get("/get-task/:taskId", userAuth, async (req, res) => {
       });
     }
 
-    const task = await TaskModel.findOne({ where: { taskId: parseInt(taskId) } });
+    // Step 1: Find task
+    const task = await TaskModel.findOne({
+      where: { taskId: parseInt(taskId) },
+      raw: true, // makes it a plain JS object
+    });
 
     if (!task) {
       return res.status(404).json({
@@ -119,7 +244,27 @@ router.get("/get-task/:taskId", userAuth, async (req, res) => {
       });
     }
 
-    return successResponse(res, "Task fetched successfully", task);
+    // Step 2: Find user using task.userId
+    const user = await UserModel.findOne({
+      where: { userId: task.userId },
+      attributes: [
+        "userId",
+        "name",
+        "userName",
+        "phoneNumber",
+        "email",
+        "profilePic",
+      ],
+      raw: true,
+    });
+
+    // Step 3: Merge user inside task
+    const taskWithUser = {
+      ...task,
+      user, // user will now be a property inside task
+    };
+
+    return successResponse(res, "Task fetched successfully", taskWithUser);
   } catch (error) {
     console.error("Error fetching task:", error);
     return errorResponse(res, "Error fetching task", error);

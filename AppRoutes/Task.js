@@ -144,7 +144,9 @@ router.patch("/update-task", upload.array("documents"), async (req, res) => {
       });
     }
 
-    const existingDocuments = existingTask.document || [];
+    // const existingDocuments = existingTask.document || [];
+    const existingDocuments = req.body.existingDocuments || [];
+    console.log(existingDocuments,"eeeee")
 
     const newFilePaths = req.files?.map((file) => file.filename) || [];
 
